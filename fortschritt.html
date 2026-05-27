@@ -343,8 +343,10 @@ document.getElementById('tabs').addEventListener('click', e => {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('aktiv', p.id === `panel-${key}`));
 });
 
-laden();
-renderPanels();
+window.addEventListener('pageshow', () => {
+  laden();
+  renderPanels();
+});
 </script>
 </body>
 </html>
