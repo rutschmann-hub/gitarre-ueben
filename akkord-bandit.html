@@ -561,29 +561,46 @@ function drehenEinzel(which) {
 }
 
 // ── Griffbild ────────────────────────────────────────────
-const GRIFFBILDER = [
-  'assets/grafiken/d71111.png',
-  'assets/grafiken/d71120.png',
-  'assets/grafiken/d71210.png',
-  'assets/grafiken/d71300.png',
-  'assets/grafiken/d72200.png',
-  'assets/grafiken/d72210.png',
-  'assets/grafiken/d73100.png',
-  'assets/grafiken/d74000.png',
-];
+const GRIFFBILDER = {
+  dom7: [
+    'assets/grafiken/d71111.png','assets/grafiken/d71120.png',
+    'assets/grafiken/d71210.png','assets/grafiken/d71300.png',
+    'assets/grafiken/d72200.png','assets/grafiken/d72210.png',
+    'assets/grafiken/d73100.png','assets/grafiken/d74000.png',
+  ],
+  maj7: [
+    'assets/grafiken/j71111.png','assets/grafiken/j71120.png',
+    'assets/grafiken/j71210.png','assets/grafiken/j71300.png',
+    'assets/grafiken/j72110.png','assets/grafiken/j72200.png',
+    'assets/grafiken/j73100.png','assets/grafiken/j74000.png',
+  ],
+  moll7: [
+    'assets/grafiken/m71111.png','assets/grafiken/m71120.png',
+    'assets/grafiken/m71210.png','assets/grafiken/m71300.png',
+    'assets/grafiken/m72110.png','assets/grafiken/m72200.png',
+    'assets/grafiken/m73100.png','assets/grafiken/m74000.png',
+  ],
+  moll7b5: [
+    'assets/grafiken/m7b51111.png','assets/grafiken/m7b51120.png',
+    'assets/grafiken/m7b51210.png','assets/grafiken/m7b51300.png',
+    'assets/grafiken/m7b52110.png','assets/grafiken/m7b52200.png',
+    'assets/grafiken/m7b53100.png','assets/grafiken/m7b54000.png',
+  ],
+};
 let letzterGriffbildIdx = -1;
 
 function zeigeGriffbild() {
+  const liste = GRIFFBILDER[aktuellerTyp];
   let idx;
-  do { idx = Math.floor(Math.random() * GRIFFBILDER.length); }
-  while (GRIFFBILDER.length > 1 && idx === letzterGriffbildIdx);
+  do { idx = Math.floor(Math.random() * liste.length); }
+  while (liste.length > 1 && idx === letzterGriffbildIdx);
   letzterGriffbildIdx = idx;
 
   const img  = document.getElementById('griffbild-img');
   const leer = document.getElementById('griffbild-leer');
 
   img.style.opacity = '0';
-  img.src = GRIFFBILDER[idx];
+  img.src = liste[idx];
   leer.style.display = 'none';
   img.style.display  = 'block';
   img.onload = () => requestAnimationFrame(() => { img.style.opacity = '1'; });
