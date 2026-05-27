@@ -52,21 +52,29 @@
     }
 
     .combo-table thead th {
-      padding: 0.5rem 0.75rem;
+      padding: 0.5rem 0.6rem;
       text-align: left;
-      font-size: 0.65rem;
+      font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.09em;
       color: var(--text3);
       border-bottom: 1px solid var(--border2);
       background: var(--surface2);
       white-space: nowrap;
-      font-weight: 400;
+      font-weight: 500;
     }
 
-    .combo-table thead th.th-cb { width: 2.2rem; text-align: center; }
-    .combo-table thead th.th-nr { width: 2.4rem; text-align: center; }
-    .combo-table thead th.th-zeit { width: 7rem; }
+    .combo-table thead th.th-cb { width: 2rem; text-align: center; }
+    .combo-table thead th.th-nr { width: 2rem; text-align: center; }
+    .combo-table thead th.th-zif { width: 6.5rem; }
+    .combo-table thead th.th-pf  { width: 11rem; }
+    .combo-table thead th.th-zeit { width: 6rem; }
+
+    th[data-sort] {
+      cursor: pointer;
+      user-select: none;
+    }
+    th[data-sort]:hover { color: var(--text2); }
 
     .combo-table tbody tr { transition: background 0.1s; }
     .combo-table tbody tr:hover td {
@@ -74,31 +82,31 @@
     }
 
     .combo-table tbody td {
-      padding: 0.14rem 0.5rem;
+      padding: 0.16rem 0.6rem;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
       font-family: 'DM Mono', monospace;
-      font-size: 0.8rem;
+      font-size: 0.86rem;
+      font-weight: 500;
       color: var(--text2);
     }
 
     .combo-table tbody tr:last-child td { border-bottom: none; }
 
-    .td-cb {
-      text-align: center;
-      padding: 0.14rem 0.2rem;
-    }
+    .td-cb { text-align: center; padding: 0.16rem 0.2rem; }
 
     .td-nr {
       text-align: center;
       font-size: 0.67rem;
+      font-weight: 400;
       color: var(--text3);
       user-select: none;
-      padding: 0.14rem 0.3rem;
+      padding: 0.16rem 0.3rem;
     }
 
     .td-zeit {
-      font-size: 0.7rem;
+      font-size: 0.72rem;
+      font-weight: 400;
       color: var(--text3);
       white-space: nowrap;
     }
@@ -111,11 +119,8 @@
     }
 
     tr.erledigt .td-zif,
-    tr.erledigt .td-pf {
-      color: var(--text3);
-      text-decoration: line-through;
-    }
-    tr.erledigt .td-nr { color: var(--accent2); }
+    tr.erledigt .td-pf  { color: var(--text3); text-decoration: line-through; }
+    tr.erledigt .td-nr  { color: var(--accent2); }
     tr.erledigt .td-zeit { color: var(--accent2); }
   </style>
 </head>
@@ -130,7 +135,7 @@
 </header>
 
 <main class="main">
-  <div class="container" style="max-width:900px">
+  <div class="container" style="max-width:720px">
 
     <div class="page-hero">
       <h1 class="page-hero-title">Alle Kombinationen</h1>
@@ -171,7 +176,6 @@ function allePerms(arr) {
 const ZIFFERN_PERMS = allePerms(['1','3','5','7']).map(p => p.join(' '));
 const PFEILE_PERMS  = allePerms(['↑↑','↓↓','↑↓','↓↑']).map(p => p.join(' '));
 
-// daten[key][idx] = { done: bool, zeit: string }
 let daten = {};
 function leereDaten() {
   AKKORD_TYPEN.forEach(({ key }) => {
@@ -218,14 +222,37 @@ function updateProgress(key) {
   if (label) label.textContent = `${done} / 576 (${pct} %)`;
 }
 
+// ── Sort state ───────────────────────────────────────────
+let sortCol = null; // null | 'ziffern' | 'zeit'
+let sortDir = 1;    // 1 = aufsteigend, -1 = absteigend
+let activeTab = 'dom7';
+
+function getSortedOrder(key) {
+  const indices = Array.from({ length: 576 }, (_, i) => i);
+  if (!sortCol) return indices;
+  return indices.sort((a, b) => {
+    let va, vb;
+    if (sortCol === 'ziffern') {
+      va = ZIFFERN_PERMS[Math.floor(a / 24)];
+      vb = ZIFFERN_PERMS[Math.floor(b / 24)];
+    } else {
+      va = daten[key][a].zeit || '￿';
+      vb = daten[key][b].zeit || '￿';
+    }
+    if (va < vb) return -sortDir;
+    if (va > vb) return  sortDir;
+    return 0;
+  });
+}
+
 // ── Render ───────────────────────────────────────────────
 function renderPanels() {
   const container = document.getElementById('tabPanels');
   container.innerHTML = '';
 
-  AKKORD_TYPEN.forEach(({ key, label }, tabIdx) => {
+  AKKORD_TYPEN.forEach(({ key, label }) => {
     const panel = document.createElement('div');
-    panel.className = 'tab-panel' + (tabIdx === 0 ? ' aktiv' : '');
+    panel.className = 'tab-panel' + (key === activeTab ? ' aktiv' : '');
     panel.id = `panel-${key}`;
 
     const done = countDone(key);
@@ -245,56 +272,64 @@ function renderPanels() {
 
     const table = document.createElement('table');
     table.className = 'combo-table';
+
+    const indZ = sortCol === 'ziffern' ? (sortDir === 1 ? ' ▲' : ' ▼') : '';
+    const indT = sortCol === 'zeit'    ? (sortDir === 1 ? ' ▲' : ' ▼') : '';
+
     table.innerHTML = `
       <thead>
         <tr>
           <th class="th-cb">✓</th>
           <th class="th-nr">#</th>
-          <th>Ziffernfolge</th>
-          <th>Pfeilfolge</th>
-          <th class="th-zeit">Zuletzt</th>
+          <th class="th-zif" data-sort="ziffern">Ziffernfolge${indZ}</th>
+          <th class="th-pf">Pfeilfolge</th>
+          <th class="th-zeit" data-sort="zeit">Zuletzt${indT}</th>
         </tr>
       </thead>
     `;
 
-    const tbody = document.createElement('tbody');
-    let idx = 0;
-    for (let z = 0; z < 24; z++) {
-      for (let pf = 0; pf < 24; pf++, idx++) {
-        const entry = daten[key][idx];
-        const tr    = document.createElement('tr');
-        tr.id = `r-${key}-${idx}`;
-        if (entry.done) tr.classList.add('erledigt');
+    const tbody  = document.createElement('tbody');
+    const order  = getSortedOrder(key);
 
-        const tdCb = document.createElement('td');
-        tdCb.className = 'td-cb';
-        const cb = document.createElement('input');
-        cb.type = 'checkbox'; cb.className = 'combo-cb'; cb.checked = entry.done;
-        cb.dataset.key = key; cb.dataset.idx = idx;
-        tdCb.appendChild(cb);
-        tr.appendChild(tdCb);
+    order.forEach((originalIdx, displayPos) => {
+      const entry = daten[key][originalIdx];
+      const z     = Math.floor(originalIdx / 24);
+      const pf    = originalIdx % 24;
 
-        const tdNr = document.createElement('td');
-        tdNr.className = 'td-nr'; tdNr.textContent = idx + 1;
-        tr.appendChild(tdNr);
+      const tr = document.createElement('tr');
+      tr.id = `r-${key}-${originalIdx}`;
+      if (entry.done) tr.classList.add('erledigt');
 
-        const tdZ = document.createElement('td');
-        tdZ.className = 'td-zif'; tdZ.textContent = ZIFFERN_PERMS[z];
-        tr.appendChild(tdZ);
+      const tdCb = document.createElement('td');
+      tdCb.className = 'td-cb';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.className = 'combo-cb';
+      cb.checked = entry.done;
+      cb.dataset.key = key; cb.dataset.idx = originalIdx;
+      tdCb.appendChild(cb);
+      tr.appendChild(tdCb);
 
-        const tdP = document.createElement('td');
-        tdP.className = 'td-pf'; tdP.textContent = PFEILE_PERMS[pf];
-        tr.appendChild(tdP);
+      const tdNr = document.createElement('td');
+      tdNr.className = 'td-nr';
+      tdNr.textContent = displayPos + 1;
+      tr.appendChild(tdNr);
 
-        const tdZeit = document.createElement('td');
-        tdZeit.className = 'td-zeit';
-        tdZeit.id = `zeit-${key}-${idx}`;
-        tdZeit.textContent = entry.zeit;
-        tr.appendChild(tdZeit);
+      const tdZ = document.createElement('td');
+      tdZ.className = 'td-zif'; tdZ.textContent = ZIFFERN_PERMS[z];
+      tr.appendChild(tdZ);
 
-        tbody.appendChild(tr);
-      }
-    }
+      const tdP = document.createElement('td');
+      tdP.className = 'td-pf'; tdP.textContent = PFEILE_PERMS[pf];
+      tr.appendChild(tdP);
+
+      const tdZeit = document.createElement('td');
+      tdZeit.className = 'td-zeit';
+      tdZeit.id = `zeit-${key}-${originalIdx}`;
+      tdZeit.textContent = entry.zeit;
+      tr.appendChild(tdZeit);
+
+      tbody.appendChild(tr);
+    });
 
     table.appendChild(tbody);
     wrap.appendChild(table);
@@ -320,27 +355,35 @@ document.getElementById('tabPanels').addEventListener('change', e => {
 });
 
 document.getElementById('tabPanels').addEventListener('click', e => {
+  // Sortierung
+  const th = e.target.closest('th[data-sort]');
+  if (th) {
+    const col = th.dataset.sort;
+    if (sortCol === col) sortDir *= -1;
+    else { sortCol = col; sortDir = 1; }
+    renderPanels();
+    return;
+  }
+
+  // Zurücksetzen
   const btn = e.target.closest('[data-resetkey]');
   if (!btn) return;
   const key = btn.dataset.resetkey;
   const typLabel = AKKORD_TYPEN.find(a => a.key === key)?.label;
   if (!confirm(`Alle 576 Einträge für "${typLabel}" zurücksetzen?`)) return;
   daten[key] = Array.from({ length: 576 }, () => ({ done: false, zeit: '' }));
-  const panel = document.getElementById(`panel-${key}`);
-  panel.querySelectorAll('.combo-cb').forEach(cb => { cb.checked = false; });
-  panel.querySelectorAll('[id^="zeit-"]').forEach(td => { td.textContent = ''; });
-  panel.querySelectorAll('tr[id]').forEach(tr => { tr.classList.remove('erledigt'); });
   updateProgress(key);
   speichern();
+  renderPanels();
 });
 
 // ── Tabs ─────────────────────────────────────────────────
 document.getElementById('tabs').addEventListener('click', e => {
   const btn = e.target.closest('.tab-btn');
   if (!btn) return;
-  const key = btn.dataset.tab;
+  activeTab = btn.dataset.tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('aktiv', b === btn));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('aktiv', p.id === `panel-${key}`));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('aktiv', p.id === `panel-${activeTab}`));
 });
 
 window.addEventListener('pageshow', () => {

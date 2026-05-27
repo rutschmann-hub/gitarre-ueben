@@ -27,15 +27,16 @@
 
     /* ─── Left panel content ───────────────────────────── */
     .section-label {
-      font-size: 0.65rem;
+      font-size: 0.72rem;
       color: var(--text3);
       text-transform: uppercase;
       letter-spacing: 0.12em;
       margin-bottom: 0.6rem;
+      font-weight: 500;
     }
 
     .oberreihe { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .oberreihe label { font-size: 0.8rem; color: var(--text2); }
+    .oberreihe label { font-size: 0.9rem; color: var(--text2); font-weight: 500; }
 
     select {
       font-family: 'DM Mono', monospace;
@@ -55,7 +56,8 @@
     .akk-btn {
       padding: 6px 18px;
       font-family: 'DM Mono', monospace;
-      font-size: 0.8rem;
+      font-size: 0.9rem;
+      font-weight: 500;
       cursor: pointer;
       border-radius: 4px;
       background: transparent;
@@ -68,7 +70,7 @@
 
     .akkord-name-display {
       font-family: 'Fraunces', serif;
-      font-size: 1.8rem;
+      font-size: 2.1rem;
       font-weight: 600;
       color: var(--accent);
       min-height: 2.5rem;
@@ -78,7 +80,7 @@
     /* ─── Räder ────────────────────────────────────────── */
     .raeder-block { display: flex; gap: 3rem; align-items: flex-start; }
     .rad-gruppe { display: flex; flex-direction: column; gap: 10px; }
-    .rad-gruppe-titel { font-size: 0.7rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+    .rad-gruppe-titel { font-size: 0.78rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
     .raeder-reihe { display: flex; gap: 10px; }
     .rad-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .rad-lbl { font-size: 0.65rem; color: var(--text3); }
@@ -147,8 +149,8 @@
     .drehen-btn {
       padding: 10px 28px;
       font-family: 'DM Mono', monospace;
-      font-size: 0.9rem;
-      font-weight: 500;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
       border-radius: 6px;
       background: var(--surface2);
@@ -171,7 +173,8 @@
     .start-btn {
       padding: 6px 14px;
       font-family: 'DM Mono', monospace;
-      font-size: 0.8rem;
+      font-size: 0.9rem;
+      font-weight: 500;
       cursor: pointer;
       border-radius: 4px;
       background: transparent;
@@ -200,9 +203,9 @@
 
     /* ─── Zähler ───────────────────────────────────────── */
     .zaehler-reihe { display: flex; gap: 2rem; align-items: center; flex-wrap: wrap; }
-    .zaehler { font-size: 0.75rem; color: var(--text3); }
+    .zaehler { font-size: 0.85rem; color: var(--text3); font-weight: 500; }
     .zaehler span { color: var(--text2); }
-    .neu-gemischt { font-size: 0.7rem; color: var(--accent2); font-style: italic; opacity: 0; transition: opacity 0.5s; }
+    .neu-gemischt { font-size: 0.78rem; color: var(--accent2); font-style: italic; opacity: 0; transition: opacity 0.5s; }
     .neu-gemischt.show { opacity: 1; }
 
     /* ─── Scrollbar ────────────────────────────────────── */
@@ -420,23 +423,13 @@ function erstellePills() {
 }
 
 function animiereStrip(containerId, symbole, ziel, cb) {
-  const dauern=[1200,1500,1800,2100];
-  const runden=[8,10,12,14];
-  const h=108;
-  for(let i=0;i<4;i++){
-    const strip=document.getElementById(containerId+'-strip-'+i);
-    const zi=symbole.indexOf(ziel[i]);
-    strip.style.transition=`transform ${dauern[i]}ms cubic-bezier(0.17,0.67,0.12,0.99)`;
-    strip.style.transform=`translateY(${-(runden[i]*h*4+zi*h)}px)`;
+  const h = 108;
+  for (let i = 0; i < 4; i++) {
+    const strip = document.getElementById(containerId + '-strip-' + i);
+    strip.style.transition = 'none';
+    strip.style.transform = `translateY(${-symbole.indexOf(ziel[i]) * h}px)`;
   }
-  setTimeout(()=>{
-    for(let i=0;i<4;i++){
-      const strip=document.getElementById(containerId+'-strip-'+i);
-      strip.style.transition='none';
-      strip.style.transform=`translateY(${-symbole.indexOf(ziel[i])*h}px)`;
-    }
-    cb();
-  }, Math.max(...dauern)+50);
+  cb();
 }
 
 function aktualisiereZaehler(which) {
