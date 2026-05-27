@@ -98,23 +98,14 @@
       letter-spacing: -0.01em;
     }
 
-    /* ─── Practice row ─────────────────────────────────── */
-    .practice-row {
-      display: flex;
-      gap: 2.5rem;
-      align-items: flex-start;
-    }
-
     .raeder-wrap {
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
-      flex: 1;
-      min-width: 0;
     }
 
     /* ─── Räder ────────────────────────────────────────── */
-    .raeder-block { display: flex; gap: 0; align-items: flex-start; }
+    .raeder-block { display: flex; gap: 0; align-items: stretch; }
     .rad-gruppe { display: flex; flex-direction: column; gap: 10px; }
     .rad-gruppe-titel {
       font-size: 0.72rem;
@@ -248,19 +239,16 @@
     .neu-gemischt.show { opacity: 1; }
 
     /* ─── Griffbrett ───────────────────────────────────── */
-    .griffbrett-wrap {
+    .griffbrett-gruppe {
+      width: 250px;
       flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 210px;
     }
 
     .griffbild-frame {
-      width: 210px;
-      height: 310px;
+      width: 100%;
+      height: 162px;          /* landscape */
       border: 1.5px solid var(--border2);
-      border-radius: 10px;
+      border-radius: 8px;     /* gleich wie Räder-Fenster */
       background: var(--surface);
       display: flex;
       align-items: center;
@@ -333,62 +321,61 @@
     <!-- Akkord name -->
     <div class="akkord-name-display" id="akkord-name">–</div>
 
-    <!-- Practice area: Räder + Griffbrett -->
-    <div class="practice-row">
+    <!-- Practice area: Ziffern | Pfeile | Griffbrett -->
+    <div class="raeder-wrap">
+      <div class="raeder-block">
 
-      <!-- Left: Ziffern + Pfeile -->
-      <div class="raeder-wrap">
-        <div class="raeder-block">
-
-          <!-- Ziffern -->
-          <div class="rad-gruppe">
-            <div class="rad-gruppe-titel">Ziffern</div>
-            <div class="raeder-reihe" id="raeder-a"></div>
-            <div class="ton-pills-reihe" id="ton-pills"></div>
-            <div class="start-buttons">
-              <button class="start-btn aktiv" data-start="1" onclick="klickeZiffernStart('1')">ab 1</button>
-              <button class="start-btn" data-start="3" onclick="klickeZiffernStart('3')">ab 3</button>
-              <button class="start-btn" data-start="5" onclick="klickeZiffernStart('5')">ab 5</button>
-              <button class="start-btn" data-start="7" onclick="klickeZiffernStart('7')">ab 7</button>
-              <button class="reset-btn" id="reset-btn" onclick="resetZiffern()" title="Sequenz von vorne">↺</button>
-            </div>
+        <!-- Ziffern -->
+        <div class="rad-gruppe">
+          <div class="rad-gruppe-titel">Ziffern</div>
+          <div class="raeder-reihe" id="raeder-a"></div>
+          <div class="ton-pills-reihe" id="ton-pills"></div>
+          <div class="start-buttons">
+            <button class="start-btn aktiv" data-start="1" onclick="klickeZiffernStart('1')">ab 1</button>
+            <button class="start-btn" data-start="3" onclick="klickeZiffernStart('3')">ab 3</button>
+            <button class="start-btn" data-start="5" onclick="klickeZiffernStart('5')">ab 5</button>
+            <button class="start-btn" data-start="7" onclick="klickeZiffernStart('7')">ab 7</button>
+            <button class="reset-btn" id="reset-btn" onclick="resetZiffern()" title="Sequenz von vorne">↺</button>
           </div>
-
-          <div class="trennlinie"></div>
-
-          <!-- Pfeile -->
-          <div class="rad-gruppe">
-            <div class="rad-gruppe-titel">Pfeile</div>
-            <div class="raeder-reihe" id="raeder-b"></div>
-            <div style="margin-top:10px">
-              <button class="drehen-btn" id="btn-b" onclick="drehenEinzel('b')">▶ Pfeile</button>
-            </div>
-          </div>
-
         </div>
 
-        <!-- Zähler -->
-        <div class="zaehler-reihe">
-          <div class="zaehler">Ziffern: <span id="zaehler-a">0</span>/24</div>
-          <div class="zaehler">Pfeile: <span id="zaehler-b">0</span>/24</div>
-          <div class="neu-gemischt" id="neu-gemischt-a"></div>
-          <div class="neu-gemischt" id="neu-gemischt-b"></div>
+        <div class="trennlinie"></div>
+
+        <!-- Pfeile -->
+        <div class="rad-gruppe">
+          <div class="rad-gruppe-titel">Pfeile</div>
+          <div class="raeder-reihe" id="raeder-b"></div>
+          <div style="margin-top:auto">
+            <button class="drehen-btn" id="btn-b" onclick="drehenEinzel('b')">▶ Pfeile</button>
+          </div>
         </div>
+
+        <div class="trennlinie"></div>
+
+        <!-- Griffbrett -->
+        <div class="rad-gruppe griffbrett-gruppe">
+          <div class="rad-gruppe-titel">Griffbrett</div>
+          <div class="griffbild-frame">
+            <div class="griffbild-leer" id="griffbild-leer">
+              <div class="griffbild-leer-icon">🎸</div>
+              <span>Griffbild</span>
+            </div>
+            <img id="griffbild-img" alt="Griffbild">
+          </div>
+          <div style="margin-top:auto">
+            <button class="drehen-btn" id="btn-griffbrett" onclick="zeigeGriffbild()">▶ Griffbrett</button>
+          </div>
+        </div>
+
       </div>
 
-      <!-- Right: Griffbrett -->
-      <div class="griffbrett-wrap">
-        <div class="rad-gruppe-titel">Griffbrett</div>
-        <div class="griffbild-frame">
-          <div class="griffbild-leer" id="griffbild-leer">
-            <div class="griffbild-leer-icon">🎸</div>
-            <span>Griffbild</span>
-          </div>
-          <img id="griffbild-img" alt="Griffbild">
-        </div>
-        <button class="drehen-btn" id="btn-griffbrett" onclick="zeigeGriffbild()">▶ Griffbrett</button>
+      <!-- Zähler -->
+      <div class="zaehler-reihe">
+        <div class="zaehler">Ziffern: <span id="zaehler-a">0</span>/24</div>
+        <div class="zaehler">Pfeile: <span id="zaehler-b">0</span>/24</div>
+        <div class="neu-gemischt" id="neu-gemischt-a"></div>
+        <div class="neu-gemischt" id="neu-gemischt-b"></div>
       </div>
-
     </div>
 
     <!-- Geübt -->
