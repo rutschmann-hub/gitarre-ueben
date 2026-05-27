@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Protokoll – Gitarrenübungen</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      padding: 0.55rem 0.75rem;
+      text-align: left;
+      font-size: 0.67rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text3);
+      border-bottom: 1px solid var(--border2);
+      background: var(--surface2);
+      white-space: nowrap;
+      font-weight: 400;
+    }
+
+    thead th.th-nr { width: 2.4rem; text-align: center; }
+
+    tbody tr { transition: background 0.1s; }
+
+    tbody tr:hover td {
+      background: color-mix(in srgb, var(--surface2) 70%, transparent);
+    }
+
+    tbody td {
+      padding: 0.18rem 0.4rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    .td-nr {
+      text-align: center;
+      font-size: 0.68rem;
+      color: var(--text3);
+      user-select: none;
+      padding: 0.18rem 0.3rem;
+    }
+
+    tr.hat-wert .td-nr { color: var(--accent2); }
+
+    .proto-sel {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid transparent;
+      border-radius: 4px;
+      padding: 0.28rem 0.45rem;
+      cursor: pointer;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.14s, background 0.14s;
+    }
+
+    .proto-sel:hover {
+      border-color: var(--border);
+      background: var(--surface2);
+    }
+
+    .proto-sel:focus {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+
+    .proto-sel.leer { color: var(--text3); }
+
+    .td-akkord  { width: 8.5rem; }
+    .td-ziffern { width: 8rem; }
+    .td-pfeile  { min-width: 13rem; }
+
+    .td-zeit {
+      font-size: 0.7rem;
+      color: var(--text3);
+      white-space: nowrap;
+      padding-left: 0.75rem;
+      width: 7.5rem;
+    }
+
+    tr.hat-wert .td-zeit { color: var(--text2); }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-inner">
+    <a class="back-btn" href="index.html">← Übersicht</a>
+    <span class="header-title">Protokoll</span>
+    <button class="btn btn-ghost btn-sm" id="clearAllBtn">Alles löschen</button>
+  </div>
+</header>
+
+<main class="main">
+  <div class="container" style="max-width:900px">
+
+    <div class="page-hero">
+      <h1 class="page-hero-title">Übungsprotokoll</h1>
+      <p class="page-hero-subtitle">24 Zeilen – Änderungen werden automatisch gespeichert</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="th-nr">#</th>
+            <th>Akkord</th>
+            <th>Ziffern</th>
+            <th>Pfeile</th>
+            <th>Zuletzt geändert</th>
+          </tr>
+        </thead>
+        <tbody id="tBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const STORAGE_KEY = 'gitueben_protokoll';
+const NUM_ROWS    = 24;
+
+// ── Permutationen ────────────────────────────────────────
+function allePerms(arr) {
+  const res = [];
+  (function p(a, cur) {
+    if (!a.length) { res.push([...cur]); return; }
+    a.forEach((v, i) => { const r = [...a]; r.splice(i, 1); p(r, [...cur, v]); });
+  })(arr, []);
+  return res;
+}
+
+const ZIFFERN_PERMS = allePerms(['1','3','5','7']).map(p => p.join(' '));
+const PFEILE_PERMS  = allePerms(['↑↑','↓↓','↑↓','↓↑']).map(p => p.join(' '));
+
+const AKKORD_OPTS = [
+  { value: '',        label: '–' },
+  { value: 'dom7',    label: 'Dom 7' },
+  { value: 'maj7',    label: 'Maj 7' },
+  { value: 'moll7',   label: 'Moll 7' },
+  { value: 'moll7b5', label: 'Moll 7/b5' },
+];
+
+// ── Daten ────────────────────────────────────────────────
+let daten = Array.from({ length: NUM_ROWS }, () =>
+  ({ akkord: '', ziffern: '', pfeile: '', zeit: '' })
+);
+
+function laden() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    JSON.parse(raw).forEach((row, i) => { if (i < NUM_ROWS) daten[i] = { ...daten[i], ...row }; });
+  } catch(e) {}
+}
+
+function speichern() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(daten));
+}
+
+function zeitstempel() {
+  const d   = new Date();
+  const dd  = String(d.getDate()).padStart(2,'0');
+  const mm  = String(d.getMonth()+1).padStart(2,'0');
+  const hh  = String(d.getHours()).padStart(2,'0');
+  const min = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}.${mm}. ${hh}:${min}`;
+}
+
+function aufChange(rowIdx, col, value, sel) {
+  daten[rowIdx][col] = value;
+  sel.classList.toggle('leer', !value);
+
+  const row     = daten[rowIdx];
+  const hatWert = row.akkord || row.ziffern || row.pfeile;
+  daten[rowIdx].zeit = hatWert ? zeitstempel() : '';
+
+  document.getElementById(`zeit-${rowIdx}`).textContent  = daten[rowIdx].zeit;
+  document.getElementById(`row-${rowIdx}`).classList.toggle('hat-wert', !!hatWert);
+
+  speichern();
+}
+
+// ── Render ───────────────────────────────────────────────
+function optionenHinzufuegen(sel, opts, aktuellerWert) {
+  opts.forEach(opt => {
+    const o       = document.createElement('option');
+    o.value       = typeof opt === 'string' ? opt : opt.value;
+    o.textContent = typeof opt === 'string' ? opt : opt.label;
+    if (o.value === aktuellerWert) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.classList.toggle('leer', !aktuellerWert);
+}
+
+function erstelleSelect(rowIdx, col, opts, aktuellerWert) {
+  const sel = document.createElement('select');
+  sel.className = 'proto-sel';
+  optionenHinzufuegen(sel, opts, aktuellerWert);
+  sel.addEventListener('change', e => aufChange(rowIdx, col, e.target.value, sel));
+  return sel;
+}
+
+function renderTabelle() {
+  const tbody = document.getElementById('tBody');
+  tbody.innerHTML = '';
+
+  for (let i = 0; i < NUM_ROWS; i++) {
+    const row     = daten[i];
+    const hatWert = row.akkord || row.ziffern || row.pfeile;
+
+    const tr = document.createElement('tr');
+    tr.id    = `row-${i}`;
+    if (hatWert) tr.classList.add('hat-wert');
+
+    // Nr
+    const tdNr = document.createElement('td');
+    tdNr.className   = 'td-nr';
+    tdNr.textContent = i + 1;
+    tr.appendChild(tdNr);
+
+    // Akkord
+    const tdAkk = document.createElement('td');
+    tdAkk.className = 'td-akkord';
+    tdAkk.appendChild(erstelleSelect(i, 'akkord', AKKORD_OPTS, row.akkord));
+    tr.appendChild(tdAkk);
+
+    // Ziffern
+    const ziffernOpts = [{ value: '', label: '–' },
+      ...ZIFFERN_PERMS.map(p => ({ value: p, label: p }))];
+    const tdZif = document.createElement('td');
+    tdZif.className = 'td-ziffern';
+    tdZif.appendChild(erstelleSelect(i, 'ziffern', ziffernOpts, row.ziffern));
+    tr.appendChild(tdZif);
+
+    // Pfeile
+    const pfeilOpts = [{ value: '', label: '–' },
+      ...PFEILE_PERMS.map(p => ({ value: p, label: p }))];
+    const tdPf = document.createElement('td');
+    tdPf.className = 'td-pfeile';
+    tdPf.appendChild(erstelleSelect(i, 'pfeile', pfeilOpts, row.pfeile));
+    tr.appendChild(tdPf);
+
+    // Zeit
+    const tdZeit = document.createElement('td');
+    tdZeit.className   = 'td-zeit';
+    tdZeit.id          = `zeit-${i}`;
+    tdZeit.textContent = row.zeit;
+    tr.appendChild(tdZeit);
+
+    tbody.appendChild(tr);
+  }
+}
+
+// ── Alles löschen ────────────────────────────────────────
+document.getElementById('clearAllBtn').addEventListener('click', () => {
+  if (!confirm('Alle 24 Einträge löschen?')) return;
+  daten = Array.from({ length: NUM_ROWS }, () =>
+    ({ akkord: '', ziffern: '', pfeile: '', zeit: '' })
+  );
+  speichern();
+  renderTabelle();
+});
+
+laden();
+renderTabelle();
+</script>
+</body>
+</html>
