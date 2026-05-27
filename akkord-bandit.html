@@ -217,7 +217,6 @@
   <div class="app-header-inner">
     <a class="back-btn" href="index.html">← Übersicht</a>
     <span class="header-title">Akkord Bandit</span>
-    <a class="btn btn-ghost btn-sm" href="protokoll.html">📋 Protokoll</a>
     <a class="btn btn-ghost btn-sm" href="fortschritt.html">✅ Fortschritt</a>
   </div>
 </header>
@@ -273,6 +272,10 @@
       <div class="zaehler">Pfeile: <span id="zaehler-b">0</span>/24</div>
       <div class="neu-gemischt" id="neu-gemischt-a"></div>
       <div class="neu-gemischt" id="neu-gemischt-b"></div>
+    </div>
+
+    <div>
+      <button class="drehen-btn beide" id="btn-geuebt" onclick="markiereGeuebt()" disabled>✓ Geübt</button>
     </div>
 
   </div>
@@ -342,6 +345,7 @@ let gezogenB = 0;
 let laeuft = false;
 let aktuellerTyp = 'dom7';
 let letzteZiffern = null;
+let letztePfeile  = null;
 
 function naechsteA() {
   if(gezogenA >= aktiveZiffernSeq.length){ gezogenA=0; zeigeNeuGemischt('a', '↺ von vorne'); }
@@ -448,10 +452,10 @@ function drehenEinzel(which) {
   laeuft=true; sperreButtons(true);
   if(which==='a'){
     const ziel=naechsteA(); aktualisiereZaehler('a');
-    animiereStrip('raeder-a',ziffernSymbole,ziel,()=>{ letzteZiffern=ziel; zeigeAkkord(ziel); laeuft=false; sperreButtons(false); });
+    animiereStrip('raeder-a',ziffernSymbole,ziel,()=>{ letzteZiffern=ziel; zeigeAkkord(ziel); laeuft=false; sperreButtons(false); updateGeuebtBtn(); });
   } else {
     const ziel=naechsteB(); aktualisiereZaehler('b');
-    animiereStrip('raeder-b',pfeilSymbole,ziel,()=>{ laeuft=false; sperreButtons(false); });
+    animiereStrip('raeder-b',pfeilSymbole,ziel,()=>{ letztePfeile=ziel; laeuft=false; sperreButtons(false); updateGeuebtBtn(); });
   }
 }
 
@@ -472,6 +476,69 @@ function zeigeAkkord(ziffern) {
 
 
 document.getElementById('grundton').addEventListener('change',()=>{ if(letzteZiffern) zeigeAkkord(letzteZiffern); });
+
+function updateGeuebtBtn() {
+  document.getElementById('btn-geuebt').disabled = !(letzteZiffern && letztePfeile);
+}
+
+function zeitstempel() {
+  const d=new Date();
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const hh=String(d.getHours()).padStart(2,'0');
+  const min=String(d.getMinutes()).padStart(2,'0');
+  return `${dd}.${mm}. ${hh}:${min}`;
+}
+
+function markiereGeuebt() {
+  if (!letzteZiffern || !letztePfeile) return;
+
+  const zStr  = letzteZiffern.join(' ');
+  const pfStr = letztePfeile.join(' ');
+
+  // canonical indices matching fortschritt.html's row order
+  const zIdx  = ziffernSequenzen['1'].findIndex(p => p.join(' ') === zStr);
+  const pfIdx = allePermsB.findIndex(p => p.join(' ') === pfStr);
+  if (zIdx < 0 || pfIdx < 0) return;
+  const comboIdx = zIdx * 24 + pfIdx;
+
+  const FORT_KEY = 'gitueben_fortschritt';
+  const AKKORDS  = ['dom7','maj7','moll7','moll7b5'];
+
+  let daten = {};
+  AKKORDS.forEach(k => { daten[k] = Array.from({length:576}, () => ({done:false, zeit:''})); });
+  try {
+    const raw = localStorage.getItem(FORT_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      AKKORDS.forEach(k => {
+        if (!Array.isArray(saved[k])) return;
+        saved[k].forEach((v, i) => {
+          if (i >= 576) return;
+          daten[k][i] = typeof v === 'boolean'
+            ? { done: v, zeit: '' }
+            : { done: !!v?.done, zeit: v?.zeit || '' };
+        });
+      });
+    }
+  } catch(e) {}
+
+  daten[aktuellerTyp][comboIdx] = { done: true, zeit: zeitstempel() };
+  localStorage.setItem(FORT_KEY, JSON.stringify(daten));
+
+  const btn = document.getElementById('btn-geuebt');
+  const orig = btn.textContent;
+  btn.textContent = '✓ Gespeichert';
+  btn.style.background = 'var(--accent2)';
+  btn.style.color = '#fff';
+  btn.style.borderColor = 'var(--accent2)';
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }, 1800);
+}
 
 erstelleRad('raeder-a',ziffernSymbole);
 erstelleRad('raeder-b',pfeilSymbole);
