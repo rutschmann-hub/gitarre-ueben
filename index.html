@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gitarrenübungen</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .card-icon {
+      font-size: 1.6rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    .card-arrow {
+      display: inline-block;
+      color: var(--text3);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      transition: transform var(--transition), color var(--transition);
+    }
+    .card-link:hover .card-arrow {
+      transform: translateX(3px);
+      color: var(--accent);
+    }
+    .app-name {
+      font-size: 1.35rem;
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-inner">
+    <span class="header-title app-name">Gitarrenübungen</span>
+    <span class="sync-status" id="syncStatus"></span>
+    <button class="btn btn-ghost btn-sm" id="tokenBtn" title="GitHub Token">⚙</button>
+  </div>
+</header>
+
+<main class="main">
+  <div class="container">
+
+    <div class="page-hero">
+      <h1 class="page-hero-title">Übungsplan</h1>
+      <p class="page-hero-subtitle">Wähle eine Kategorie zum Üben</p>
+    </div>
+
+    <div id="tokenNotice" class="notice" style="display:none">
+      <span>⚠</span>
+      <span>Kein GitHub Token – Fortschritt wird nur lokal gespeichert.
+        <a href="#" id="tokenNoticeBtn">Token eingeben →</a>
+      </span>
+    </div>
+
+    <div class="card-grid" id="cardGrid">
+      <div class="card" style="border-style:dashed; animation: blink 1.4s ease-in-out infinite; color:var(--text3); text-align:center; padding:2rem;">
+        Lädt…
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Token Dialog -->
+<dialog id="tokenDialog">
+  <h2 class="dialog-title">GitHub Token</h2>
+  <p class="dialog-desc">
+    Dein Personal Access Token (classic) wird gebraucht, damit Fortschritte
+    automatisch in <code>rutschmann-hub/gitarre-ueben</code> gespeichert werden.<br><br>
+    GitHub → Settings → Developer settings →
+    Personal access tokens → Tokens (classic) → Generate new token<br>
+    Benötigter Scope: <code>repo</code>
+  </p>
+  <div class="field">
+    <label class="field-label" for="tokenInput">Personal Access Token</label>
+    <input class="field-input" type="password" id="tokenInput" placeholder="ghp_…" autocomplete="off">
+  </div>
+  <div class="dialog-actions">
+    <button class="btn btn-ghost" id="tokenClear" style="margin-right:auto">Token löschen</button>
+    <button class="btn btn-ghost" id="tokenCancel">Abbrechen</button>
+    <button class="btn btn-primary" id="tokenSave">Speichern</button>
+  </div>
+</dialog>
+
+<script src="assets/github-api.js"></script>
+<script>
+  const PAGES = [
+    {
+      key:   'sequenzen',
+      title: 'Übungssequenzen',
+      desc:  'Schritt-für-Schritt-Pläne zum Abhaken und Nachverfolgen',
+      href:  'ueben/sequenzen.html',
+      icon:  '📋',
+      label: 'Üben',
+    },
+    {
+      key:   'skalen',
+      title: 'Skalen',
+      desc:  'Tonleitern und Läufe in allen Lagen',
+      href:  'ueben/skalen.html',
+      icon:  '🎵',
+      label: 'Üben',
+    },
+    {
+      key:   'akkorde',
+      title: 'Akkorde',
+      desc:  'Grifftabellen und Wechselübungen',
+      href:  'ueben/akkorde.html',
+      icon:  '🤘',
+      label: 'Üben',
+    },
+    {
+      key:      'bandit',
+      title:    'Akkord Bandit',
+      desc:     'Permutationstrainer für Vierklänge – dom7, maj7, moll7, moll7b5',
+      href:     'akkord-bandit.html',
+      icon:     '🎲',
+      label:    'Tool',
+      noStats:  true,
+    },
+  ];
+
+  let progressData = null;
+
+  // ── Progress helpers ──────────────────────────────────────────────────
+  function countProgress(section) {
+    if (!section || typeof section !== 'object') return { done: 0, total: 0 };
+    let done = 0, total = 0;
+    for (const seq of Object.values(section)) {
+      for (const item of Object.values(seq.items || {})) {
+        total++;
+        if (item.done) done++;
+      }
+    }
+    return { done, total };
+  }
+
+  // ── Render cards ──────────────────────────────────────────────────────
+  function renderCards() {
+    const grid = document.getElementById('cardGrid');
+    grid.innerHTML = PAGES.map(page => {
+      const { done, total } = page.noStats
+        ? { done: 0, total: 0 }
+        : countProgress(progressData?.[page.key]);
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      const progressHtml = total > 0
+        ? `<div class="progress-wrap" style="margin-top:0.6rem">
+            <div class="progress-bar">
+              <div class="progress-bar-fill" style="width:${pct}%"></div>
+            </div>
+            <span class="progress-label">${done}/${total}</span>
+           </div>`
+        : `<span class="text-xs text-muted">${page.noStats ? 'Externes Tool' : 'Noch keine Übungen'}</span>`;
+
+      return `
+        <a class="card card-link" href="${page.href}">
+          <span class="card-icon">${page.icon}</span>
+          <div class="card-label">${page.label}</div>
+          <div class="card-title">${page.title}</div>
+          <div class="card-desc">${page.desc}</div>
+          ${progressHtml}
+          <span class="card-arrow">→</span>
+        </a>
+      `;
+    }).join('');
+  }
+
+  // ── Sync status ───────────────────────────────────────────────────────
+  function setSyncStatus(state, text) {
+    const el = document.getElementById('syncStatus');
+    el.className = `sync-status ${state}`;
+    el.textContent = text;
+  }
+
+  // ── Token dialog ──────────────────────────────────────────────────────
+  const tokenDialog = document.getElementById('tokenDialog');
+
+  function openTokenDialog() {
+    const existing = GitHubAPI.getToken();
+    document.getElementById('tokenInput').value = existing || '';
+    tokenDialog.showModal();
+  }
+
+  document.getElementById('tokenBtn').addEventListener('click', openTokenDialog);
+  document.getElementById('tokenNoticeBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    openTokenDialog();
+  });
+
+  document.getElementById('tokenSave').addEventListener('click', () => {
+    const val = document.getElementById('tokenInput').value.trim();
+    if (!val) return;
+    GitHubAPI.setToken(val);
+    tokenDialog.close();
+    document.getElementById('tokenNotice').style.display = 'none';
+    init();
+  });
+
+  document.getElementById('tokenClear').addEventListener('click', () => {
+    GitHubAPI.clearToken();
+    document.getElementById('tokenInput').value = '';
+    tokenDialog.close();
+    document.getElementById('tokenNotice').style.display = 'flex';
+    setSyncStatus('dirty', '○ Kein Token');
+  });
+
+  document.getElementById('tokenCancel').addEventListener('click', () => tokenDialog.close());
+
+  // Close on backdrop click
+  tokenDialog.addEventListener('click', (e) => {
+    if (e.target === tokenDialog) tokenDialog.close();
+  });
+
+  // ── Online / offline ──────────────────────────────────────────────────
+  window.addEventListener('online', async () => {
+    setSyncStatus('saving', '⟳ Synchronisiert…');
+    const r = await GitHubAPI.syncPending();
+    if (r?.ok) setSyncStatus('synced', '✓ Synchronisiert');
+  });
+
+  window.addEventListener('offline', () => {
+    setSyncStatus('offline', '◌ Offline');
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  async function init() {
+    setSyncStatus('saving', '⟳ Lädt…');
+    await GitHubAPI.syncPending();
+    progressData = await GitHubAPI.load();
+    renderCards();
+
+    if (!GitHubAPI.getToken()) {
+      document.getElementById('tokenNotice').style.display = 'flex';
+      setSyncStatus('dirty', '○ Kein Token');
+    } else {
+      setSyncStatus('synced', '✓ Synchronisiert');
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

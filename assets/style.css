@@ -1,0 +1,637 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #f5f0e8;
+  --surface: #ede7db;
+  --surface2: #e6dfd1;
+  --border: #d5cdbf;
+  --border2: #c4bba9;
+  --text: #2c2416;
+  --text2: #7a6e5f;
+  --text3: #a89e8e;
+  --accent: #8b5e3c;
+  --accent2: #3d6b5e;
+  --accent3: #9e4040;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(44,36,22,.08), 0 2px 8px rgba(44,36,22,.04);
+  --transition: 140ms ease;
+}
+
+html {
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* ─── Typography ─────────────────────────────────── */
+
+h1, h2, h3 {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+h1 { font-size: 1.9rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.05rem; }
+
+code {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.88em;
+  background: var(--surface2);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+/* ─── Layout ─────────────────────────────────────── */
+
+.container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* ─── Header ─────────────────────────────────────── */
+
+.app-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.25rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.header-title {
+  flex: 1;
+  font-family: 'Fraunces', serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 0.83rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: color var(--transition), background var(--transition);
+}
+
+.back-btn:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+
+/* ─── Sync Status ────────────────────────────────── */
+
+.sync-status {
+  font-size: 0.72rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.sync-status:empty { display: none; }
+
+.sync-status.synced {
+  color: var(--accent2);
+  background: color-mix(in srgb, var(--accent2) 12%, transparent);
+}
+
+.sync-status.saving {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+.sync-status.dirty {
+  color: var(--accent3);
+  background: color-mix(in srgb, var(--accent3) 12%, transparent);
+}
+
+.sync-status.offline {
+  color: var(--text2);
+  background: var(--surface2);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ─── Main ───────────────────────────────────────── */
+
+.main {
+  padding: 1.5rem 0 5rem;
+}
+
+/* ─── Page Hero ──────────────────────────────────── */
+
+.page-hero {
+  padding: 1.75rem 0 1.25rem;
+}
+
+.page-hero-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.95rem;
+  font-weight: 300;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+.page-hero-subtitle {
+  font-size: 0.88rem;
+  color: var(--text2);
+}
+
+/* ─── Section Header ─────────────────────────────── */
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--text);
+}
+
+/* ─── Cards ──────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.card:hover {
+  border-color: var(--border2);
+  box-shadow: var(--shadow);
+}
+
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text3);
+  margin-bottom: 0.3rem;
+}
+
+.card-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: 0.45rem;
+}
+
+.card-desc {
+  font-size: 0.83rem;
+  color: var(--text2);
+  margin-bottom: 0.8rem;
+  line-height: 1.5;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 0.85rem;
+}
+
+/* ─── Progress Bar ───────────────────────────────── */
+
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent2);
+  border-radius: 999px;
+  transition: width 0.45s ease;
+  min-width: 0;
+}
+
+.progress-label {
+  font-size: 0.72rem;
+  color: var(--text3);
+  white-space: nowrap;
+  min-width: 2.2rem;
+  text-align: right;
+}
+
+/* ─── Sequence Cards ─────────────────────────────── */
+
+.seq-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.9rem;
+  overflow: hidden;
+}
+
+.seq-card-header {
+  padding: 1rem 1.2rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.seq-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.seq-card-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.02rem;
+  font-weight: 400;
+  color: var(--text);
+  flex: 1;
+}
+
+.seq-card-body {
+  padding: 0.3rem 0;
+}
+
+.seq-card-footer {
+  padding: 0.45rem 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ─── Check Items ────────────────────────────────── */
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 1.2rem;
+  transition: background var(--transition);
+}
+
+.check-item:hover {
+  background: var(--surface2);
+}
+
+.check-item-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  cursor: pointer;
+}
+
+.check-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid var(--border2);
+  border-radius: 4px;
+  background: var(--bg);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color var(--transition), background var(--transition);
+  position: relative;
+}
+
+.check-item input[type="checkbox"]:hover {
+  border-color: var(--accent2);
+}
+
+.check-item input[type="checkbox"]:checked {
+  background: var(--accent2);
+  border-color: var(--accent2);
+}
+
+.check-item input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 1.5px;
+  left: 4.5px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid white;
+  border-top: none;
+  border-left: none;
+  transform: rotate(43deg);
+}
+
+.check-item-label {
+  font-size: 0.88rem;
+  color: var(--text);
+  transition: color var(--transition);
+  line-height: 1.4;
+}
+
+.check-item-label.done {
+  color: var(--text3);
+  text-decoration: line-through;
+}
+
+/* ─── Delete Button ──────────────────────────────── */
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  line-height: 1;
+  transition: color var(--transition), background var(--transition);
+  flex-shrink: 0;
+}
+
+.delete-btn:hover {
+  color: var(--accent3);
+  background: color-mix(in srgb, var(--accent3) 10%, transparent);
+}
+
+.check-item-delete {
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.check-item:hover .check-item-delete {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .check-item-delete { opacity: 0.45; }
+}
+
+/* ─── Buttons ────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 82%, black);
+  border-color: color-mix(in srgb, var(--accent) 82%, black);
+}
+
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text2);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text2);
+}
+
+.btn-ghost:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.btn-sm {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+}
+
+/* ─── FAB ────────────────────────────────────────── */
+
+.fab-wrap {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 50;
+}
+
+.fab-wrap .btn {
+  box-shadow: 0 2px 12px rgba(139,94,60,.35);
+}
+
+/* ─── Modal / Dialog ─────────────────────────────── */
+
+dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: min(440px, calc(100vw - 2rem));
+  box-shadow: 0 8px 32px rgba(44,36,22,.18);
+  color: var(--text);
+}
+
+dialog::backdrop {
+  background: rgba(44, 36, 22, 0.3);
+  backdrop-filter: blur(3px);
+}
+
+.dialog-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.dialog-desc {
+  font-size: 0.82rem;
+  color: var(--text2);
+  margin-bottom: 1.2rem;
+  line-height: 1.65;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1.2rem;
+}
+
+/* ─── Form Fields ────────────────────────────────── */
+
+.field { margin-bottom: 1rem; }
+
+.field-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text2);
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.field-input {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.field-input:focus {
+  border-color: var(--accent);
+}
+
+.field-input::placeholder {
+  color: var(--text3);
+}
+
+/* ─── Notice / Banner ────────────────────────────── */
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.82rem;
+  color: var(--text2);
+  line-height: 1.55;
+}
+
+.notice a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.notice a:hover {
+  text-decoration: underline;
+}
+
+/* ─── Empty State ────────────────────────────────── */
+
+.empty-state {
+  text-align: center;
+  padding: 3.5rem 1rem 2rem;
+  color: var(--text3);
+}
+
+.empty-state-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.6rem;
+  display: block;
+}
+
+.empty-state-text {
+  font-size: 0.88rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ─── Coming Soon ────────────────────────────────── */
+
+.coming-soon {
+  text-align: center;
+  padding: 4rem 1.5rem;
+  color: var(--text3);
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
+}
+
+/* ─── Utility ────────────────────────────────────── */
+
+.text-muted { color: var(--text2); }
+.text-xs { font-size: 0.75rem; }
+.mt-1 { margin-top: 0.5rem; }
+
+/* ─── Responsive ─────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .card-grid { grid-template-columns: 1fr; }
+  .page-hero-title { font-size: 1.55rem; }
+  .fab-wrap { bottom: 1rem; right: 1rem; }
+  h1 { font-size: 1.55rem; }
+}

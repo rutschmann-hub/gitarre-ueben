@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Übungssequenzen – Gitarrenübungen</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-inner">
+    <a class="back-btn" href="../index.html">← Übersicht</a>
+    <span class="header-title">Sequenzen</span>
+    <span class="sync-status" id="syncStatus"></span>
+  </div>
+</header>
+
+<main class="main">
+  <div class="container">
+
+    <div class="page-hero">
+      <h1 class="page-hero-title">Übungssequenzen</h1>
+      <p class="page-hero-subtitle">Abhak-Listen für strukturiertes Üben</p>
+    </div>
+
+    <div id="tokenNotice" class="notice" style="display:none">
+      <span>⚠</span>
+      <span>Kein GitHub Token – Häkchen werden nur lokal gespeichert.
+        <a href="#" id="tokenNoticeBtn">Token eingeben →</a>
+      </span>
+    </div>
+
+    <div id="seqList"></div>
+
+    <div id="emptyState" class="empty-state" style="display:none">
+      <span class="empty-state-icon">📋</span>
+      <p class="empty-state-text">Noch keine Sequenzen. Erstelle deine erste!</p>
+      <button class="btn btn-primary" id="addSeqBtnEmpty">+ Neue Sequenz</button>
+    </div>
+
+  </div>
+</main>
+
+<div class="fab-wrap" id="fab">
+  <button class="btn btn-primary" id="addSeqBtn">+ Neue Sequenz</button>
+</div>
+
+<!-- Add / Edit Dialog -->
+<dialog id="addDialog">
+  <h2 class="dialog-title" id="dialogTitle">Neue Sequenz</h2>
+  <p class="dialog-desc" id="dialogDesc"></p>
+  <div class="field">
+    <label class="field-label" id="dialogLabel" for="dialogInput">Titel</label>
+    <input class="field-input" type="text" id="dialogInput">
+  </div>
+  <div class="dialog-actions">
+    <button class="btn btn-ghost" id="dialogCancel">Abbrechen</button>
+    <button class="btn btn-primary" id="dialogConfirm">Hinzufügen</button>
+  </div>
+</dialog>
+
+<!-- Token Dialog -->
+<dialog id="tokenDialog">
+  <h2 class="dialog-title">GitHub Token</h2>
+  <p class="dialog-desc">
+    Dein Personal Access Token (classic) wird gebraucht, damit Fortschritte
+    automatisch in <code>rutschmann-hub/gitarre-ueben</code> gespeichert werden.<br><br>
+    GitHub → Settings → Developer settings →
+    Personal access tokens → Tokens (classic) → Generate new token<br>
+    Benötigter Scope: <code>repo</code>
+  </p>
+  <div class="field">
+    <label class="field-label" for="tokenInput">Personal Access Token</label>
+    <input class="field-input" type="password" id="tokenInput" placeholder="ghp_…" autocomplete="off">
+  </div>
+  <div class="dialog-actions">
+    <button class="btn btn-ghost" id="tokenCancel">Abbrechen</button>
+    <button class="btn btn-primary" id="tokenSave">Speichern</button>
+  </div>
+</dialog>
+
+<script src="../assets/github-api.js"></script>
+<script>
+  let progress   = null;
+  let saveTimer  = null;
+  let dialogCb   = null;
+
+  // ── Sync status ───────────────────────────────────────────────────────
+  function setSyncStatus(state, text) {
+    const el = document.getElementById('syncStatus');
+    el.className = `sync-status ${state}`;
+    el.textContent = text;
+  }
+
+  // ── Debounced save ────────────────────────────────────────────────────
+  function scheduleSave() {
+    setSyncStatus('saving', '⟳ Speichert…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      const r = await GitHubAPI.save(progress);
+      if (r.ok)                      setSyncStatus('synced',  '✓ Gespeichert');
+      else if (r.reason === 'no_token') { setSyncStatus('dirty', '○ Kein Token'); showTokenNotice(); }
+      else if (r.reason === 'offline')  setSyncStatus('offline', '◌ Offline');
+      else                             setSyncStatus('dirty',  '✗ Fehler');
+    }, 700);
+  }
+
+  function showTokenNotice() {
+    document.getElementById('tokenNotice').style.display = 'flex';
+  }
+
+  // ── HTML escape ───────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────
+  function renderAll() {
+    const list      = document.getElementById('seqList');
+    const empty     = document.getElementById('emptyState');
+    const fab       = document.getElementById('fab');
+    const seqs      = progress.sequenzen || {};
+    const seqKeys   = Object.keys(seqs);
+
+    if (seqKeys.length === 0) {
+      list.innerHTML = '';
+      empty.style.display = 'block';
+      fab.style.display   = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    fab.style.display   = 'block';
+
+    list.innerHTML = seqKeys.map(id => renderSeq(id, seqs[id])).join('');
+  }
+
+  function renderSeq(seqId, seq) {
+    const items    = seq.items || {};
+    const itemKeys = Object.keys(items);
+    const done     = itemKeys.filter(k => items[k].done).length;
+    const total    = itemKeys.length;
+    const pct      = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    const itemsHtml = itemKeys.length === 0
+      ? `<p style="padding:.65rem 1.2rem; color:var(--text3); font-size:.84rem;">Noch keine Übungen hinzugefügt.</p>`
+      : itemKeys.map(iId => renderItem(seqId, iId, items[iId])).join('');
+
+    return `
+      <div class="seq-card" id="seq-${seqId}">
+        <div class="seq-card-header">
+          <div class="seq-card-title-row">
+            <span class="seq-card-title">${esc(seq.title)}</span>
+            <button class="delete-btn" data-delete-seq="${seqId}" title="Sequenz löschen">✕</button>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bar">
+              <div class="progress-bar-fill" id="bar-${seqId}" style="width:${pct}%"></div>
+            </div>
+            <span class="progress-label" id="label-${seqId}">${done}/${total}</span>
+          </div>
+        </div>
+        <div class="seq-card-body" id="items-${seqId}">
+          ${itemsHtml}
+        </div>
+        <div class="seq-card-footer">
+          <button class="btn btn-ghost btn-sm" data-add-item="${seqId}">+ Übung hinzufügen</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderItem(seqId, itemId, item) {
+    return `
+      <div class="check-item">
+        <label class="check-item-label-wrap">
+          <input type="checkbox"
+            data-seq="${seqId}"
+            data-item="${itemId}"
+            ${item.done ? 'checked' : ''}>
+          <span class="check-item-label ${item.done ? 'done' : ''}">${esc(item.title)}</span>
+        </label>
+        <button class="delete-btn check-item-delete"
+          data-delete-item="${itemId}"
+          data-delete-item-seq="${seqId}"
+          title="Übung löschen">✕</button>
+      </div>
+    `;
+  }
+
+  // ── Update progress bar without full re-render ────────────────────────
+  function updateSeqProgress(seqId) {
+    const seq   = progress.sequenzen[seqId];
+    if (!seq) return;
+    const items = Object.values(seq.items || {});
+    const done  = items.filter(i => i.done).length;
+    const total = items.length;
+    const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    const bar   = document.getElementById(`bar-${seqId}`);
+    const label = document.getElementById(`label-${seqId}`);
+    if (bar)   bar.style.width    = `${pct}%`;
+    if (label) label.textContent  = `${done}/${total}`;
+  }
+
+  // ── Event delegation ──────────────────────────────────────────────────
+  document.getElementById('seqList').addEventListener('change', e => {
+    if (!e.target.matches('input[type="checkbox"]')) return;
+    const cb     = e.target;
+    const seqId  = cb.dataset.seq;
+    const itemId = cb.dataset.item;
+    if (!progress.sequenzen[seqId]?.items[itemId]) return;
+
+    progress.sequenzen[seqId].items[itemId].done = cb.checked;
+
+    // Toggle strikethrough without re-render
+    const labelSpan = cb.nextElementSibling;
+    if (labelSpan) labelSpan.classList.toggle('done', cb.checked);
+
+    updateSeqProgress(seqId);
+    scheduleSave();
+  });
+
+  document.getElementById('seqList').addEventListener('click', e => {
+    const deleteSeq  = e.target.closest('[data-delete-seq]');
+    const deleteItem = e.target.closest('[data-delete-item]');
+    const addItem    = e.target.closest('[data-add-item]');
+
+    if (deleteSeq) {
+      const id  = deleteSeq.dataset.deleteSeq;
+      const seq = progress.sequenzen[id];
+      if (!seq || !confirm(`Sequenz „${seq.title}" wirklich löschen?`)) return;
+      delete progress.sequenzen[id];
+      renderAll();
+      scheduleSave();
+      return;
+    }
+
+    if (deleteItem) {
+      const itemId = deleteItem.dataset.deleteItem;
+      const seqId  = deleteItem.dataset.deleteItemSeq;
+      if (!progress.sequenzen[seqId]?.items[itemId]) return;
+      delete progress.sequenzen[seqId].items[itemId];
+      renderAll();
+      scheduleSave();
+      return;
+    }
+
+    if (addItem) {
+      const seqId = addItem.dataset.addItem;
+      openDialog({
+        title:       'Übung hinzufügen',
+        label:       'Bezeichnung der Übung',
+        placeholder: 'z.B. C-Dur Arpeggio, 60 BPM',
+        onConfirm(value) {
+          if (!progress.sequenzen[seqId].items) progress.sequenzen[seqId].items = {};
+          const id = `item-${Date.now()}`;
+          progress.sequenzen[seqId].items[id] = { title: value, done: false };
+          renderAll();
+          scheduleSave();
+        },
+      });
+    }
+  });
+
+  // ── "Neue Sequenz" buttons ────────────────────────────────────────────
+  function onAddSeq() {
+    openDialog({
+      title:       'Neue Sequenz',
+      label:       'Titel der Sequenz',
+      placeholder: 'z.B. Woche 3: Fingerpicking',
+      onConfirm(value) {
+        const id = `seq-${Date.now()}`;
+        progress.sequenzen[id] = {
+          title:   value,
+          created: new Date().toISOString().slice(0, 10),
+          items:   {},
+        };
+        renderAll();
+        scheduleSave();
+      },
+    });
+  }
+
+  document.getElementById('addSeqBtn').addEventListener('click', onAddSeq);
+  document.getElementById('addSeqBtnEmpty').addEventListener('click', onAddSeq);
+
+  // ── Generic dialog ────────────────────────────────────────────────────
+  function openDialog({ title, desc = '', label, placeholder = '', confirmText = 'Hinzufügen', onConfirm }) {
+    document.getElementById('dialogTitle').textContent   = title;
+    document.getElementById('dialogDesc').textContent    = desc;
+    document.getElementById('dialogLabel').textContent   = label;
+    document.getElementById('dialogConfirm').textContent = confirmText;
+    const input = document.getElementById('dialogInput');
+    input.placeholder = placeholder;
+    input.value       = '';
+    dialogCb = onConfirm;
+    document.getElementById('addDialog').showModal();
+    setTimeout(() => input.focus(), 60);
+  }
+
+  document.getElementById('dialogConfirm').addEventListener('click', () => {
+    const val = document.getElementById('dialogInput').value.trim();
+    if (!val) return;
+    document.getElementById('addDialog').close();
+    if (dialogCb) dialogCb(val);
+  });
+
+  document.getElementById('dialogCancel').addEventListener('click', () => {
+    document.getElementById('addDialog').close();
+  });
+
+  document.getElementById('dialogInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter')  document.getElementById('dialogConfirm').click();
+    if (e.key === 'Escape') document.getElementById('addDialog').close();
+  });
+
+  document.getElementById('addDialog').addEventListener('click', e => {
+    if (e.target === document.getElementById('addDialog'))
+      document.getElementById('addDialog').close();
+  });
+
+  // ── Token dialog ──────────────────────────────────────────────────────
+  document.getElementById('tokenNoticeBtn').addEventListener('click', e => {
+    e.preventDefault();
+    document.getElementById('tokenDialog').showModal();
+  });
+
+  document.getElementById('tokenSave').addEventListener('click', () => {
+    const val = document.getElementById('tokenInput').value.trim();
+    if (!val) return;
+    GitHubAPI.setToken(val);
+    document.getElementById('tokenDialog').close();
+    document.getElementById('tokenNotice').style.display = 'none';
+    setSyncStatus('saving', '⟳ Speichert…');
+    GitHubAPI.save(progress).then(r => {
+      if (r.ok) setSyncStatus('synced', '✓ Gespeichert');
+      else      setSyncStatus('dirty',  '✗ Fehler: ' + r.reason);
+    });
+  });
+
+  document.getElementById('tokenCancel').addEventListener('click', () => {
+    document.getElementById('tokenDialog').close();
+  });
+
+  document.getElementById('tokenDialog').addEventListener('click', e => {
+    if (e.target === document.getElementById('tokenDialog'))
+      document.getElementById('tokenDialog').close();
+  });
+
+  // ── Online / offline ──────────────────────────────────────────────────
+  window.addEventListener('online', async () => {
+    setSyncStatus('saving', '⟳ Synchronisiert…');
+    const r = await GitHubAPI.syncPending();
+    if (r?.ok) setSyncStatus('synced', '✓ Gespeichert');
+  });
+
+  window.addEventListener('offline', () => setSyncStatus('offline', '◌ Offline'));
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  async function init() {
+    setSyncStatus('saving', '⟳ Lädt…');
+    await GitHubAPI.syncPending();
+    progress = await GitHubAPI.load();
+    renderAll();
+
+    if (!GitHubAPI.getToken()) {
+      showTokenNotice();
+      setSyncStatus('dirty', '○ Kein Token');
+    } else {
+      setSyncStatus('synced', '✓ Synchronisiert');
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
