@@ -310,10 +310,10 @@
       <div class="settings-group">
         <span class="section-label">Akkordtyp</span>
         <div class="akkord-buttons">
-          <button class="akk-btn aktiv" onclick="waehleAkkord('dom7',this)">dom7</button>
-          <button class="akk-btn" onclick="waehleAkkord('maj7',this)">maj7</button>
-          <button class="akk-btn" onclick="waehleAkkord('moll7',this)">moll7</button>
-          <button class="akk-btn" onclick="waehleAkkord('moll7b5',this)">moll7b5</button>
+          <button class="akk-btn aktiv" data-typ="dom7" onclick="waehleAkkord('dom7',this)">dom7</button>
+          <button class="akk-btn" data-typ="maj7" onclick="waehleAkkord('maj7',this)">maj7</button>
+          <button class="akk-btn" data-typ="moll7" onclick="waehleAkkord('moll7',this)">moll7</button>
+          <button class="akk-btn" data-typ="moll7b5" onclick="waehleAkkord('moll7b5',this)">moll7b5</button>
         </div>
       </div>
     </div>
@@ -444,6 +444,79 @@ let aktuellerTyp  = 'dom7';
 let letzteZiffern = null;
 let letztePfeile  = null;
 
+// ── State-Persistenz ─────────────────────────────────────
+const BANDIT_STATE_KEY = 'gitueben_bandit_state';
+
+function speichereState() {
+  try {
+    localStorage.setItem(BANDIT_STATE_KEY, JSON.stringify({
+      aktuellerTyp,
+      grundton:          document.getElementById('grundton').value,
+      aktiveStart,
+      gezogenA,
+      gezogenB,
+      stapelB,
+      letzteZiffern,
+      letztePfeile,
+      letzterGriffbildIdx,
+      griffbildSichtbar: document.getElementById('griffbild-img').style.display === 'block',
+    }));
+  } catch(e) {}
+}
+
+function ladeState() {
+  try {
+    const raw = localStorage.getItem(BANDIT_STATE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+
+    if (s.aktuellerTyp && akkordTypen[s.aktuellerTyp])       aktuellerTyp = s.aktuellerTyp;
+    if (s.aktiveStart  && ziffernSequenzen[s.aktiveStart]) {
+      aktiveStart      = s.aktiveStart;
+      aktiveZiffernSeq = ziffernSequenzen[s.aktiveStart];
+    }
+    if (typeof s.gezogenA === 'number') gezogenA = s.gezogenA;
+    if (typeof s.gezogenB === 'number') gezogenB = s.gezogenB;
+    if (Array.isArray(s.stapelB) && s.stapelB.length === allePermsB.length) stapelB = s.stapelB;
+    if (Array.isArray(s.letzteZiffern)) letzteZiffern = s.letzteZiffern;
+    if (Array.isArray(s.letztePfeile))  letztePfeile  = s.letztePfeile;
+    if (typeof s.letzterGriffbildIdx === 'number') letzterGriffbildIdx = s.letzterGriffbildIdx;
+
+    // Grundton
+    if (s.grundton) document.getElementById('grundton').value = s.grundton;
+
+    // Akkordtyp-Buttons
+    document.querySelectorAll('.akk-btn').forEach(b =>
+      b.classList.toggle('aktiv', b.dataset.typ === aktuellerTyp)
+    );
+
+    // Start-Buttons
+    document.querySelectorAll('.start-btn').forEach(b =>
+      b.classList.toggle('aktiv', b.dataset.start === aktiveStart)
+    );
+
+    // Zähler
+    aktualisiereZaehler('a');
+    aktualisiereZaehler('b');
+
+    // Räder wiederherstellen
+    if (letzteZiffern) animiereStrip('raeder-a', ziffernSymbole, letzteZiffern, () => zeigeAkkord(letzteZiffern));
+    if (letztePfeile)  animiereStrip('raeder-b', pfeilSymbole,   letztePfeile,  () => {});
+
+    // Griffbild wiederherstellen
+    if (s.griffbildSichtbar && letzterGriffbildIdx >= 0) {
+      const img  = document.getElementById('griffbild-img');
+      const leer = document.getElementById('griffbild-leer');
+      img.src            = GRIFFBILDER[aktuellerTyp][letzterGriffbildIdx];
+      img.style.display  = 'block';
+      img.style.opacity  = '1';
+      leer.style.display = 'none';
+    }
+
+    updateGeuebtBtn();
+  } catch(e) {}
+}
+
 // ── Permutations ─────────────────────────────────────────
 function naechsteA() {
   if (gezogenA >= aktiveZiffernSeq.length) { gezogenA = 0; zeigeNeuGemischt('a','↺ von vorne'); }
@@ -472,6 +545,7 @@ function resetZiffern() {
   const el = document.getElementById('neu-gemischt-a');
   el.textContent = '↺ zurückgesetzt'; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2000);
+  speichereState();
 }
 
 function zeigeNeuGemischt(which, msg) {
@@ -486,6 +560,7 @@ function waehleAkkord(typ, btn) {
   document.querySelectorAll('.akk-btn').forEach(b => b.classList.remove('aktiv'));
   btn.classList.add('aktiv');
   if (letzteZiffern) zeigeAkkord(letzteZiffern);
+  speichereState();
 }
 
 function zeigeAkkord(ziffern) {
@@ -502,7 +577,7 @@ function zeigeAkkord(ziffern) {
   });
 }
 
-document.getElementById('grundton').addEventListener('change', () => { if (letzteZiffern) zeigeAkkord(letzteZiffern); });
+document.getElementById('grundton').addEventListener('change', () => { if (letzteZiffern) zeigeAkkord(letzteZiffern); speichereState(); });
 
 // ── Räder ────────────────────────────────────────────────
 function erstelleRad(containerId, symbole) {
@@ -553,10 +628,10 @@ function drehenEinzel(which) {
   laeuft = true; sperreButtons(true);
   if (which === 'a') {
     const ziel = naechsteA(); aktualisiereZaehler('a');
-    animiereStrip('raeder-a', ziffernSymbole, ziel, () => { letzteZiffern = ziel; zeigeAkkord(ziel); laeuft = false; sperreButtons(false); updateGeuebtBtn(); });
+    animiereStrip('raeder-a', ziffernSymbole, ziel, () => { letzteZiffern = ziel; zeigeAkkord(ziel); laeuft = false; sperreButtons(false); updateGeuebtBtn(); speichereState(); });
   } else {
     const ziel = naechsteB(); aktualisiereZaehler('b');
-    animiereStrip('raeder-b', pfeilSymbole, ziel, () => { letztePfeile = ziel; laeuft = false; sperreButtons(false); updateGeuebtBtn(); });
+    animiereStrip('raeder-b', pfeilSymbole, ziel, () => { letztePfeile = ziel; laeuft = false; sperreButtons(false); updateGeuebtBtn(); speichereState(); });
   }
 }
 
@@ -604,6 +679,7 @@ function zeigeGriffbild() {
   leer.style.display = 'none';
   img.style.display  = 'block';
   img.onload = () => requestAnimationFrame(() => { img.style.opacity = '1'; });
+  speichereState();
 }
 
 // ── Geübt ────────────────────────────────────────────────
@@ -655,6 +731,10 @@ function markiereGeuebt() {
 erstelleRad('raeder-a', ziffernSymbole);
 erstelleRad('raeder-b', pfeilSymbole);
 erstellePills();
+
+window.addEventListener('pageshow', (e) => {
+  if (!e.persisted) ladeState();
+});
 </script>
 </body>
 </html>
