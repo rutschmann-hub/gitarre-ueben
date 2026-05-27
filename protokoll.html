@@ -96,6 +96,19 @@
     }
 
     tr.hat-wert .td-zeit { color: var(--text2); }
+
+    tr.duplikat td {
+      background: color-mix(in srgb, var(--accent3) 7%, transparent) !important;
+    }
+    tr.duplikat .td-nr {
+      color: var(--accent3);
+      font-weight: 500;
+    }
+    tr.duplikat .td-nr::after {
+      content: '!';
+      font-size: 0.6rem;
+      vertical-align: super;
+    }
   </style>
 </head>
 <body>
@@ -196,7 +209,27 @@ function aufChange(rowIdx, col, value, sel) {
   document.getElementById(`zeit-${rowIdx}`).textContent  = daten[rowIdx].zeit;
   document.getElementById(`row-${rowIdx}`).classList.toggle('hat-wert', !!hatWert);
 
+  pruefeDuplikate();
   speichern();
+}
+
+function pruefeDuplikate() {
+  // Build signature → [indices] map; only rows with all 3 fields set count
+  const sigMap = {};
+  daten.forEach((row, i) => {
+    if (!row.akkord || !row.ziffern || !row.pfeile) return;
+    const sig = `${row.akkord}|${row.ziffern}|${row.pfeile}`;
+    (sigMap[sig] = sigMap[sig] || []).push(i);
+  });
+
+  for (let i = 0; i < NUM_ROWS; i++) {
+    const row = daten[i];
+    const tr  = document.getElementById(`row-${i}`);
+    if (!tr) continue;
+    const sig = row.akkord && row.ziffern && row.pfeile
+      ? `${row.akkord}|${row.ziffern}|${row.pfeile}` : null;
+    tr.classList.toggle('duplikat', !!sig && sigMap[sig].length > 1);
+  }
 }
 
 // ── Render ───────────────────────────────────────────────
@@ -282,6 +315,7 @@ document.getElementById('clearAllBtn').addEventListener('click', () => {
 
 laden();
 renderTabelle();
+pruefeDuplikate();
 </script>
 </body>
 </html>
