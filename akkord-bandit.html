@@ -249,6 +249,39 @@
     .drehen-btn.beide { border-color: var(--accent); color: var(--accent); }
     .drehen-btn.beide:hover { background: var(--accent); color: #fff; }
 
+    /* ─── Start-Buttons ────────────────────────────────── */
+    .start-buttons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+    .start-btn {
+      padding: 6px 14px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid var(--border2);
+      transition: all 0.15s;
+    }
+    .start-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .start-btn.aktiv { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+    .start-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .reset-btn {
+      padding: 6px 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--text3);
+      border: 1px solid var(--border);
+      transition: all 0.15s;
+      margin-left: 4px;
+    }
+    .reset-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+    .reset-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
     /* ─── Zähler ───────────────────────────────────────── */
     .zaehler-reihe { display: flex; gap: 2rem; align-items: center; flex-wrap: wrap; }
     .zaehler { font-size: 0.75rem; color: var(--text3); }
@@ -300,18 +333,22 @@
         <div class="rad-gruppe-titel">Ziffern</div>
         <div class="raeder-reihe" id="raeder-a"></div>
         <div class="ton-pills-reihe" id="ton-pills"></div>
+        <div class="start-buttons">
+          <button class="start-btn aktiv" data-start="1" onclick="klickeZiffernStart('1')">ab 1</button>
+          <button class="start-btn" data-start="3" onclick="klickeZiffernStart('3')">ab 3</button>
+          <button class="start-btn" data-start="5" onclick="klickeZiffernStart('5')">ab 5</button>
+          <button class="start-btn" data-start="7" onclick="klickeZiffernStart('7')">ab 7</button>
+          <button class="reset-btn" id="reset-btn" onclick="resetZiffern()" title="Sequenz von vorne">↺</button>
+        </div>
       </div>
       <div class="trennlinie"></div>
       <div class="rad-gruppe">
         <div class="rad-gruppe-titel">Pfeile</div>
         <div class="raeder-reihe" id="raeder-b"></div>
+        <div style="margin-top:10px">
+          <button class="drehen-btn" id="btn-b" onclick="drehenEinzel('b')">▶ Pfeile</button>
+        </div>
       </div>
-    </div>
-
-    <div class="dreh-buttons">
-      <button class="drehen-btn" id="btn-a" onclick="drehenEinzel('a')">▶ Ziffern</button>
-      <button class="drehen-btn beide" id="btn-beide" onclick="drehenBeide()">▶▶ Beide</button>
-      <button class="drehen-btn" id="btn-b" onclick="drehenEinzel('b')">▶ Pfeile</button>
     </div>
 
     <div class="zaehler-reihe">
@@ -367,12 +404,35 @@ function mische(arr) {
   return a;
 }
 
-const ziffernReihenfolge = [
-  ['1','3','5','7'],['1','3','7','5'],['1','5','3','7'],['1','5','7','3'],['1','7','3','5'],['1','7','5','3'],
-  ['3','1','5','7'],['3','1','7','5'],['3','5','1','7'],['3','5','7','1'],['3','7','1','5'],['3','7','5','1'],
-  ['5','1','3','7'],['5','1','7','3'],['5','3','1','7'],['5','3','7','1'],['5','7','1','3'],['5','7','3','1'],
-  ['7','1','3','5'],['7','1','5','3'],['7','3','1','5'],['7','3','5','1'],['7','5','1','3'],['7','5','3','1'],
-];
+const ziffernSequenzen = {
+  '1': [
+    ['1','3','5','7'],['1','3','7','5'],['1','5','3','7'],['1','5','7','3'],['1','7','3','5'],['1','7','5','3'],
+    ['3','1','5','7'],['3','1','7','5'],['3','5','1','7'],['3','5','7','1'],['3','7','1','5'],['3','7','5','1'],
+    ['5','1','3','7'],['5','1','7','3'],['5','3','1','7'],['5','3','7','1'],['5','7','1','3'],['5','7','3','1'],
+    ['7','1','3','5'],['7','1','5','3'],['7','3','1','5'],['7','3','5','1'],['7','5','1','3'],['7','5','3','1'],
+  ],
+  '3': [
+    ['3','1','5','7'],['3','1','7','5'],['3','5','1','7'],['3','5','7','1'],['3','7','1','5'],['3','7','5','1'],
+    ['5','1','3','7'],['5','1','7','3'],['5','3','1','7'],['5','3','7','1'],['5','7','1','3'],['5','7','3','1'],
+    ['7','1','3','5'],['7','1','5','3'],['7','3','1','5'],['7','3','5','1'],['7','5','1','3'],['7','5','3','1'],
+    ['1','3','5','7'],['1','3','7','5'],['1','5','3','7'],['1','5','7','3'],['1','7','3','5'],['1','7','5','3'],
+  ],
+  '5': [
+    ['5','1','3','7'],['5','1','7','3'],['5','3','1','7'],['5','3','7','1'],['5','7','1','3'],['5','7','3','1'],
+    ['7','1','3','5'],['7','1','5','3'],['7','3','1','5'],['7','3','5','1'],['7','5','1','3'],['7','5','3','1'],
+    ['1','3','5','7'],['1','3','7','5'],['1','5','3','7'],['1','5','7','3'],['1','7','3','5'],['1','7','5','3'],
+    ['3','1','5','7'],['3','1','7','5'],['3','5','1','7'],['3','5','7','1'],['3','7','1','5'],['3','7','5','1'],
+  ],
+  '7': [
+    ['7','1','3','5'],['7','1','5','3'],['7','3','1','5'],['7','3','5','1'],['7','5','1','3'],['7','5','3','1'],
+    ['1','3','5','7'],['1','3','7','5'],['1','5','3','7'],['1','5','7','3'],['1','7','3','5'],['1','7','5','3'],
+    ['3','1','5','7'],['3','1','7','5'],['3','5','1','7'],['3','5','7','1'],['3','7','1','5'],['3','7','5','1'],
+    ['5','1','3','7'],['5','1','7','3'],['5','3','1','7'],['5','3','7','1'],['5','7','1','3'],['5','7','3','1'],
+  ],
+};
+
+let aktiveZiffernSeq = ziffernSequenzen['1'];
+let aktiveStart = '1';
 
 const allePermsB = allePerms(pfeilSymbole);
 let stapelB = mische(allePermsB);
@@ -386,8 +446,30 @@ let letztePfeile  = null;
 let history = [];
 
 function naechsteA() {
-  if(gezogenA >= ziffernReihenfolge.length){ gezogenA=0; zeigeNeuGemischt('a', '↺ von vorne'); }
-  return ziffernReihenfolge[gezogenA++];
+  if(gezogenA >= aktiveZiffernSeq.length){ gezogenA=0; zeigeNeuGemischt('a', '↺ von vorne'); }
+  return aktiveZiffernSeq[gezogenA++];
+}
+
+function klickeZiffernStart(start) {
+  if(laeuft) return;
+  if(aktiveStart !== start) {
+    aktiveStart = start;
+    aktiveZiffernSeq = ziffernSequenzen[start];
+    gezogenA = 0;
+    document.querySelectorAll('.start-btn').forEach(b =>
+      b.classList.toggle('aktiv', b.dataset.start === start));
+    aktualisiereZaehler('a');
+  }
+  drehenEinzel('a');
+}
+
+function resetZiffern() {
+  gezogenA = 0;
+  aktualisiereZaehler('a');
+  const el = document.getElementById('neu-gemischt-a');
+  el.textContent = '↺ zurückgesetzt';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2000);
 }
 
 function naechsteB() {
@@ -474,7 +556,7 @@ function aktualisiereZaehler(which) {
 }
 
 function sperreButtons(an) {
-  ['btn-a','btn-b','btn-beide'].forEach(id=>document.getElementById(id).disabled=an);
+  document.querySelectorAll('.start-btn, .reset-btn, #btn-b').forEach(el => el.disabled = an);
 }
 
 function drehenEinzel(which) {
@@ -489,16 +571,6 @@ function drehenEinzel(which) {
   }
 }
 
-function drehenBeide() {
-  if(laeuft) return;
-  laeuft=true; sperreButtons(true);
-  const zielA=naechsteA(), zielB=naechsteB();
-  aktualisiereZaehler('a'); aktualisiereZaehler('b');
-  let fertig=0;
-  function check(){ if(++fertig===2){ letzteZiffern=zielA; letztePfeile=zielB; zeigeAkkord(zielA); addHistory(zielA,zielB); laeuft=false; sperreButtons(false); } }
-  animiereStrip('raeder-a',ziffernSymbole,zielA,check);
-  animiereStrip('raeder-b',pfeilSymbole,zielB,check);
-}
 
 function zeigeAkkord(ziffern) {
   const grundton=document.getElementById('grundton').value;
