@@ -2,9 +2,265 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Akkord Bandit – Gitarrenübungen</title>
   <link rel="stylesheet" href="assets/style.css">
+  <style>
+    /* ─── Layout ───────────────────────────────────────── */
+    body { display: flex; flex-direction: column; }
+
+    .page-main { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+
+    .left-panel {
+      flex: 0 0 66.666%;
+      padding: 2.5rem;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      overflow-y: auto;
+    }
+
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: var(--surface);
+    }
+
+    /* ─── Right panel ──────────────────────────────────── */
+    .right-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+      flex-shrink: 0;
+    }
+
+    .right-header h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 0.95rem;
+      font-weight: 400;
+      font-style: italic;
+      color: var(--text2);
+    }
+
+    .history-actions { display: flex; gap: 8px; }
+
+    .hist-btn {
+      padding: 4px 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      cursor: pointer;
+      border-radius: 4px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--text2);
+      transition: all 0.15s;
+    }
+    .hist-btn:hover { border-color: var(--accent3); color: var(--accent3); background: color-mix(in srgb, var(--accent3) 6%, transparent); }
+    .delete-last { color: var(--accent3) !important; border-color: var(--accent3) !important; }
+    .delete-last:hover { background: var(--accent3) !important; color: #fff !important; }
+
+    .history-list { flex: 1; overflow-y: auto; padding: 0.25rem 0; }
+
+    .hist-col-header {
+      padding: 0.4rem 1rem;
+      display: grid;
+      grid-template-columns: 55px 1fr 1fr 1fr;
+      gap: 8px;
+      font-size: 0.6rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      flex-shrink: 0;
+    }
+
+    .history-item {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 55px 1fr 1fr 1fr;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.72rem;
+      transition: background 0.1s;
+    }
+    .history-item:hover { background: var(--surface2); }
+    .hist-time { color: var(--text3); font-size: 0.65rem; }
+    .hist-ziffern { color: var(--accent); letter-spacing: 0.06em; }
+    .hist-pfeile { color: var(--accent2); }
+    .hist-akkord { color: var(--text); }
+    .hist-akkord .akkord-label { color: var(--text2); font-size: 0.62rem; display: block; margin-top: 2px; }
+    .history-empty { padding: 3rem 1rem; text-align: center; color: var(--text3); font-size: 0.8rem; font-style: italic; }
+
+    .storage-hint {
+      padding: 0.5rem 1rem;
+      font-size: 0.62rem;
+      color: var(--text3);
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ─── Left panel content ───────────────────────────── */
+    .section-label {
+      font-size: 0.65rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.6rem;
+    }
+
+    .oberreihe { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .oberreihe label { font-size: 0.8rem; color: var(--text2); }
+
+    select {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.9rem;
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      outline: none;
+    }
+    select:focus { border-color: var(--accent); }
+
+    .akkord-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .akk-btn {
+      padding: 6px 18px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid var(--border2);
+      transition: all 0.15s;
+    }
+    .akk-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .akk-btn.aktiv { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+
+    .akkord-name-display {
+      font-family: 'Fraunces', serif;
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--accent);
+      min-height: 2.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    /* ─── Räder ────────────────────────────────────────── */
+    .raeder-block { display: flex; gap: 3rem; align-items: flex-start; }
+    .rad-gruppe { display: flex; flex-direction: column; gap: 10px; }
+    .rad-gruppe-titel { font-size: 0.7rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+    .raeder-reihe { display: flex; gap: 10px; }
+    .rad-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .rad-lbl { font-size: 0.65rem; color: var(--text3); }
+
+    .rad-fenster {
+      width: 88px;
+      height: 108px;
+      border: 1.5px solid var(--border2);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      background: #fff;
+    }
+
+    .rad-strip {
+      position: absolute;
+      width: 100%;
+      transition: transform 0s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .rad-zelle {
+      height: 108px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: var(--text);
+    }
+
+    .highlight {
+      position: absolute;
+      inset: 0;
+      border: 2.5px solid var(--accent);
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 10;
+      box-shadow: inset 0 0 14px rgba(139,94,60,0.08);
+    }
+
+    /* ─── Ton-Pills ────────────────────────────────────── */
+    .ton-pills-reihe { display: flex; gap: 10px; }
+
+    .ton-pill {
+      width: 88px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 6px;
+      transition: all 0.2s;
+    }
+    .ton-pill.leer { background: transparent; border-color: transparent; }
+    .ton-name { font-size: 20px; font-weight: 500; color: var(--accent); }
+    .ton-funktion { font-size: 11px; color: var(--text3); }
+
+    .trennlinie { width: 1px; background: var(--border); align-self: stretch; margin: 0 0.5rem; }
+
+    /* ─── Dreh-Buttons ─────────────────────────────────── */
+    .dreh-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .drehen-btn {
+      padding: 10px 28px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 6px;
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border2);
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .drehen-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--surface); }
+    .drehen-btn:active { transform: scale(0.97); }
+    .drehen-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .drehen-btn.beide { border-color: var(--accent); color: var(--accent); }
+    .drehen-btn.beide:hover { background: var(--accent); color: #fff; }
+
+    /* ─── Zähler ───────────────────────────────────────── */
+    .zaehler-reihe { display: flex; gap: 2rem; align-items: center; flex-wrap: wrap; }
+    .zaehler { font-size: 0.75rem; color: var(--text3); }
+    .zaehler span { color: var(--text2); }
+    .neu-gemischt { font-size: 0.7rem; color: var(--accent2); font-style: italic; opacity: 0; transition: opacity 0.5s; }
+    .neu-gemischt.show { opacity: 1; }
+
+    /* ─── Scrollbar ────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  </style>
 </head>
 <body>
 
@@ -12,24 +268,287 @@
   <div class="app-header-inner">
     <a class="back-btn" href="index.html">← Übersicht</a>
     <span class="header-title">Akkord Bandit</span>
+    <span style="font-size:0.72rem;color:var(--text3);white-space:nowrap">Permutationstrainer für Vierklänge</span>
   </div>
 </header>
 
-<main class="main">
-  <div class="container">
-    <div class="page-hero">
-      <h1 class="page-hero-title">Akkord Bandit</h1>
-      <p class="page-hero-subtitle">Permutationstrainer für Vierklänge</p>
-    </div>
-    <div class="coming-soon">
-      <span style="font-size:2rem;display:block;margin-bottom:.75rem">🎲</span>
-      <p style="color:var(--text2);font-size:.9rem">
-        Hier kommt der fertige Akkord-Bandit hin.<br>
-        Ersetze diese Datei mit deiner bestehenden Version.
-      </p>
-    </div>
-  </div>
-</main>
+<div class="page-main">
+  <div class="left-panel">
 
+    <div>
+      <div class="section-label">Grundton &amp; Akkordtyp</div>
+      <div class="oberreihe" style="margin-bottom:12px;">
+        <label>Grundton</label>
+        <select id="grundton">
+          <option>C</option><option>Db</option><option>D</option><option>Eb</option>
+          <option>E</option><option>F</option><option>Gb</option><option>G</option>
+          <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
+        </select>
+      </div>
+      <div class="akkord-buttons">
+        <button class="akk-btn aktiv" onclick="waehleAkkord('dom7',this)">dom7</button>
+        <button class="akk-btn" onclick="waehleAkkord('maj7',this)">maj7</button>
+        <button class="akk-btn" onclick="waehleAkkord('moll7',this)">moll7</button>
+        <button class="akk-btn" onclick="waehleAkkord('moll7b5',this)">moll7b5</button>
+      </div>
+    </div>
+
+    <div class="akkord-name-display" id="akkord-name">–</div>
+
+    <div class="raeder-block">
+      <div class="rad-gruppe">
+        <div class="rad-gruppe-titel">Ziffern</div>
+        <div class="raeder-reihe" id="raeder-a"></div>
+        <div class="ton-pills-reihe" id="ton-pills"></div>
+      </div>
+      <div class="trennlinie"></div>
+      <div class="rad-gruppe">
+        <div class="rad-gruppe-titel">Pfeile</div>
+        <div class="raeder-reihe" id="raeder-b"></div>
+      </div>
+    </div>
+
+    <div class="dreh-buttons">
+      <button class="drehen-btn" id="btn-a" onclick="drehenEinzel('a')">▶ Ziffern</button>
+      <button class="drehen-btn beide" id="btn-beide" onclick="drehenBeide()">▶▶ Beide</button>
+      <button class="drehen-btn" id="btn-b" onclick="drehenEinzel('b')">▶ Pfeile</button>
+    </div>
+
+    <div class="zaehler-reihe">
+      <div class="zaehler">Ziffern: <span id="zaehler-a">0</span>/24</div>
+      <div class="zaehler">Pfeile: <span id="zaehler-b">0</span>/24</div>
+      <div class="neu-gemischt" id="neu-gemischt-a"></div>
+      <div class="neu-gemischt" id="neu-gemischt-b"></div>
+    </div>
+
+  </div>
+
+  <div class="right-panel">
+    <div class="right-header">
+      <h2>Verlauf</h2>
+      <div class="history-actions">
+        <button class="hist-btn delete-last" onclick="loescheLetztes()">↩ Letztes löschen</button>
+        <button class="hist-btn" onclick="loescheAlles()">✕ Alles löschen</button>
+      </div>
+    </div>
+    <div class="hist-col-header">
+      <span>Zeit</span><span>Ziffern</span><span>Pfeile</span><span>Akkord</span>
+    </div>
+    <div class="history-list" id="history-list">
+      <div class="history-empty" id="history-empty">Noch keine Ergebnisse</div>
+    </div>
+    <div class="storage-hint" id="storage-hint"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'akkord-bandit-history';
+
+const akkordTypen = {
+  dom7:    { label:'7',    toene:{'C':'C E G Bb','Db':'Db F Ab Cb','D':'D F# A C','Eb':'Eb G Bb Db','E':'E G# B D','F':'F A C Eb','Gb':'Gb Bb Db Fb','G':'G B D F','Ab':'Ab C Eb Gb','A':'A C# E G','Bb':'Bb D F Ab','B':'B D# F# A'}, funkt:{'1':'Grundton','3':'Terz','5':'Quinte','7':'b7'} },
+  maj7:    { label:'maj7', toene:{'C':'C E G B','Db':'Db F Ab C','D':'D F# A C#','Eb':'Eb G Bb D','E':'E G# B D#','F':'F A C E','Gb':'Gb Bb Db F','G':'G B D F#','Ab':'Ab C Eb G','A':'A C# E G#','Bb':'Bb D F A','B':'B D# F# A#'}, funkt:{'1':'Grundton','3':'Terz','5':'Quinte','7':'7'} },
+  moll7:   { label:'m7',   toene:{'C':'C Eb G Bb','Db':'Db E Ab Cb','D':'D F A C','Eb':'Eb Gb Bb Db','E':'E G B D','F':'F Ab C Eb','Gb':'Gb A Db Fb','G':'G Bb D F','Ab':'Ab B Eb Gb','A':'A C E G','Bb':'Bb Db F Ab','B':'B D F# A'}, funkt:{'1':'Grundton','3':'b3','5':'Quinte','7':'b7'} },
+  moll7b5: { label:'m7b5', toene:{'C':'C Eb Gb Bb','Db':'Db E G Cb','D':'D F Ab C','Eb':'Eb Gb A Db','E':'E G Bb D','F':'F Ab B Eb','Gb':'Gb A C Fb','G':'G Bb Db F','Ab':'Ab B D Gb','A':'A C Eb G','Bb':'Bb Db E Ab','B':'B D F A'}, funkt:{'1':'Grundton','3':'b3','5':'b5','7':'b7'} }
+};
+
+const ziffernSymbole = ['1','3','5','7'];
+const pfeilSymbole   = ['↑↑','↓↓','↑↓','↓↑'];
+
+function allePerms(arr) {
+  const res = [];
+  function p(a, cur) { if(!a.length){res.push([...cur]);return;} a.forEach((v,i)=>{const r=[...a];r.splice(i,1);p(r,[...cur,v]);}); }
+  p(arr,[]);
+  return res;
+}
+
+function mische(arr) {
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+const allePermsA = allePerms(ziffernSymbole);
+const allePermsB = allePerms(pfeilSymbole);
+
+let stapelA = mische(allePermsA);
+let stapelB = mische(allePermsB);
+let gezogenA = 0;
+let gezogenB = 0;
+
+let laeuft = false;
+let aktuellerTyp = 'dom7';
+let letzteZiffern = null;
+let letztePfeile  = null;
+let history = [];
+
+function naechsteA() {
+  if(gezogenA >= stapelA.length){ stapelA=mische(allePermsA); gezogenA=0; zeigeNeuGemischt('a'); }
+  return stapelA[gezogenA++];
+}
+
+function naechsteB() {
+  if(gezogenB >= stapelB.length){ stapelB=mische(allePermsB); gezogenB=0; zeigeNeuGemischt('b'); }
+  return stapelB[gezogenB++];
+}
+
+function zeigeNeuGemischt(which) {
+  const el = document.getElementById('neu-gemischt-'+which);
+  el.textContent = '↺ neu gemischt';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2500);
+}
+
+function ladeHistory() {
+  try {
+    const g = localStorage.getItem(STORAGE_KEY);
+    if(g){ history=JSON.parse(g); document.getElementById('storage-hint').textContent=`${history.length} Einträge gespeichert`; }
+  } catch(e){ history=[]; }
+  renderHistory();
+}
+
+function speichereHistory() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    document.getElementById('storage-hint').textContent=`${history.length} Einträge · ${new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+  } catch(e){}
+}
+
+function waehleAkkord(typ, btn) {
+  aktuellerTyp = typ;
+  document.querySelectorAll('.akk-btn').forEach(b=>b.classList.remove('aktiv'));
+  btn.classList.add('aktiv');
+  if(letzteZiffern) zeigeAkkord(letzteZiffern);
+}
+
+function erstelleRad(containerId, symbole) {
+  const container = document.getElementById(containerId);
+  symbole.forEach((_,i) => {
+    const wrap=document.createElement('div'); wrap.className='rad-wrap';
+    const lbl=document.createElement('div'); lbl.className='rad-lbl'; lbl.textContent=(i+1)+'.';
+    const fenster=document.createElement('div'); fenster.className='rad-fenster';
+    const strip=document.createElement('div'); strip.className='rad-strip'; strip.id=containerId+'-strip-'+i;
+    const hl=document.createElement('div'); hl.className='highlight';
+    symbole.forEach(s=>{ const div=document.createElement('div'); div.className='rad-zelle'; div.textContent=s; strip.appendChild(div); });
+    fenster.appendChild(strip); fenster.appendChild(hl);
+    wrap.appendChild(lbl); wrap.appendChild(fenster);
+    container.appendChild(wrap);
+    strip.style.transform='translateY(0px)';
+  });
+}
+
+function erstellePills() {
+  const container = document.getElementById('ton-pills');
+  for(let i=0;i<4;i++){
+    const pill=document.createElement('div'); pill.className='ton-pill leer'; pill.id='pill-'+i;
+    pill.innerHTML=`<span class="ton-name" id="pill-ton-${i}"></span><span class="ton-funktion" id="pill-funk-${i}"></span>`;
+    container.appendChild(pill);
+  }
+}
+
+function animiereStrip(containerId, symbole, ziel, cb) {
+  const dauern=[1200,1500,1800,2100];
+  const runden=[8,10,12,14];
+  const h=108;
+  for(let i=0;i<4;i++){
+    const strip=document.getElementById(containerId+'-strip-'+i);
+    const zi=symbole.indexOf(ziel[i]);
+    strip.style.transition=`transform ${dauern[i]}ms cubic-bezier(0.17,0.67,0.12,0.99)`;
+    strip.style.transform=`translateY(${-(runden[i]*h*4+zi*h)}px)`;
+  }
+  setTimeout(()=>{
+    for(let i=0;i<4;i++){
+      const strip=document.getElementById(containerId+'-strip-'+i);
+      strip.style.transition='none';
+      strip.style.transform=`translateY(${-symbole.indexOf(ziel[i])*h}px)`;
+    }
+    cb();
+  }, Math.max(...dauern)+50);
+}
+
+function aktualisiereZaehler(which) {
+  document.getElementById('zaehler-'+which).textContent = which==='a' ? gezogenA : gezogenB;
+}
+
+function sperreButtons(an) {
+  ['btn-a','btn-b','btn-beide'].forEach(id=>document.getElementById(id).disabled=an);
+}
+
+function drehenEinzel(which) {
+  if(laeuft) return;
+  laeuft=true; sperreButtons(true);
+  if(which==='a'){
+    const ziel=naechsteA(); aktualisiereZaehler('a');
+    animiereStrip('raeder-a',ziffernSymbole,ziel,()=>{ letzteZiffern=ziel; zeigeAkkord(ziel); addHistory(ziel,letztePfeile); laeuft=false; sperreButtons(false); });
+  } else {
+    const ziel=naechsteB(); aktualisiereZaehler('b');
+    animiereStrip('raeder-b',pfeilSymbole,ziel,()=>{ letztePfeile=ziel; addHistory(letzteZiffern,ziel); laeuft=false; sperreButtons(false); });
+  }
+}
+
+function drehenBeide() {
+  if(laeuft) return;
+  laeuft=true; sperreButtons(true);
+  const zielA=naechsteA(), zielB=naechsteB();
+  aktualisiereZaehler('a'); aktualisiereZaehler('b');
+  let fertig=0;
+  function check(){ if(++fertig===2){ letzteZiffern=zielA; letztePfeile=zielB; zeigeAkkord(zielA); addHistory(zielA,zielB); laeuft=false; sperreButtons(false); } }
+  animiereStrip('raeder-a',ziffernSymbole,zielA,check);
+  animiereStrip('raeder-b',pfeilSymbole,zielB,check);
+}
+
+function zeigeAkkord(ziffern) {
+  const grundton=document.getElementById('grundton').value;
+  const typ=akkordTypen[aktuellerTyp];
+  const alle=typ.toene[grundton].split(' ');
+  const map={}; ziffernSymbole.forEach((z,i)=>map[z]=alle[i]);
+  document.getElementById('akkord-name').textContent=grundton+typ.label+'  ·  '+ziffern.join(' – ');
+  ziffern.forEach((z,i)=>{
+    const pill=document.getElementById('pill-'+i);
+    pill.classList.remove('leer');
+    document.getElementById('pill-ton-'+i).textContent=map[z];
+    document.getElementById('pill-funk-'+i).textContent=typ.funkt[z];
+  });
+}
+
+function getToene(ziffern) {
+  if(!ziffern) return '–';
+  const grundton=document.getElementById('grundton').value;
+  const typ=akkordTypen[aktuellerTyp];
+  const alle=typ.toene[grundton].split(' ');
+  const map={}; ziffernSymbole.forEach((z,i)=>map[z]=alle[i]);
+  return ziffern.map(z=>map[z]).join(' ');
+}
+
+function addHistory(ziffern, pfeile) {
+  const zeit=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const grundton=document.getElementById('grundton').value;
+  const typ=akkordTypen[aktuellerTyp];
+  history.unshift({zeit, ziffern:ziffern?ziffern.join(' '):'–', pfeile:pfeile?pfeile.join(' '):'–', akkord:grundton+typ.label, toene:ziffern?getToene(ziffern):'–'});
+  renderHistory(); speichereHistory();
+}
+
+function renderHistory() {
+  const list=document.getElementById('history-list');
+  const empty=document.getElementById('history-empty');
+  list.querySelectorAll('.history-item').forEach(i=>i.remove());
+  if(history.length===0){ empty.style.display='block'; return; }
+  empty.style.display='none';
+  history.forEach(e=>{
+    const div=document.createElement('div'); div.className='history-item';
+    div.innerHTML=`<span class="hist-time">${e.zeit}</span><span class="hist-ziffern">${e.ziffern}</span><span class="hist-pfeile">${e.pfeile}</span><span class="hist-akkord">${e.akkord}<span class="akkord-label">${e.toene}</span></span>`;
+    list.appendChild(div);
+  });
+}
+
+function loescheLetztes(){ if(!history.length)return; history.shift(); renderHistory(); speichereHistory(); }
+function loescheAlles(){ history=[]; renderHistory(); speichereHistory(); }
+
+document.getElementById('grundton').addEventListener('change',()=>{ if(letzteZiffern) zeigeAkkord(letzteZiffern); });
+
+erstelleRad('raeder-a',ziffernSymbole);
+erstelleRad('raeder-b',pfeilSymbole);
+erstellePills();
+ladeHistory();
+</script>
 </body>
 </html>
