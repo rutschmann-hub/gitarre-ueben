@@ -1,0 +1,37 @@
+{
+  "durchlaeufe": [
+    {
+      "datum": "29.05.2026",
+      "dom7": 3,
+      "maj7": 0,
+      "moll7": 0,
+      "moll7b5": 0
+    },
+    {
+      "datum": "29.05.2026",
+      "dom7": 3,
+      "maj7": 0,
+      "moll7": 0,
+      "moll7b5": 0
+    },
+    {
+      "datum": "29.05.2026",
+      "dom7": {
+        "unique": 3,
+        "total": 3
+      },
+      "maj7": {
+        "unique": 0,
+        "total": 0
+      },
+      "moll7": {
+        "unique": 0,
+        "total": 0
+      },
+      "moll7b5": {
+        "unique": 0,
+        "total": 0
+      }
+    }
+  ]
+}
