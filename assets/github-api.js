@@ -14,9 +14,10 @@ const GitHubAPI = (() => {
   const DIRTY_KEY = 'gitueben_dirty';
 
   // ── Token ──────────────────────────────────────────────────────────────
-  const getToken  = ()  => localStorage.getItem(TOKEN_KEY);
-  const setToken  = (t) => localStorage.setItem(TOKEN_KEY, t.trim());
-  const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+  const getToken   = ()  => localStorage.getItem(TOKEN_KEY);
+  const setToken   = (t) => localStorage.setItem(TOKEN_KEY, t.trim());
+  const clearToken = ()  => localStorage.removeItem(TOKEN_KEY);
+  const isDirty    = ()  => !!localStorage.getItem(DIRTY_KEY);
 
   function buildHeaders() {
     const h = { Accept: 'application/vnd.github.v3+json' };
@@ -72,7 +73,9 @@ const GitHubAPI = (() => {
     }
   }
 
-  // ── Save ───────────────────────────────────────────────────────────────
+  // ── Save (serialized via _saving flag to prevent SHA conflicts) ────────
+  let _saving = false;
+
   async function save(data) {
     // Always persist locally first
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
@@ -87,12 +90,21 @@ const GitHubAPI = (() => {
       return { ok: false, reason: 'offline' };
     }
 
-    const sha     = localStorage.getItem(SHA_KEY);
-    const content = b64encode(JSON.stringify(data, null, 2));
-    const body    = { message: 'chore: update progress', content };
-    if (sha) body.sha = sha;
+    // Prevent concurrent saves: a second call while one is in-flight would
+    // use the same SHA and get a 409/422 from GitHub.
+    // Mark dirty so syncPending() retries after the current save completes.
+    if (_saving) {
+      localStorage.setItem(DIRTY_KEY, '1');
+      return { ok: false, reason: 'busy' };
+    }
 
+    _saving = true;
     try {
+      const sha     = localStorage.getItem(SHA_KEY);
+      const content = b64encode(JSON.stringify(data, null, 2));
+      const body    = { message: 'chore: update progress', content };
+      if (sha) body.sha = sha;
+
       const r = await fetch(`${API_BASE}/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`, {
         method:  'PUT',
         headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
@@ -112,6 +124,8 @@ const GitHubAPI = (() => {
       console.warn('[GitHubAPI] save failed:', err.message);
       localStorage.setItem(DIRTY_KEY, '1');
       return { ok: false, reason: err.message };
+    } finally {
+      _saving = false;
     }
   }
 
@@ -119,6 +133,7 @@ const GitHubAPI = (() => {
   async function syncPending() {
     if (!localStorage.getItem(DIRTY_KEY)) return null;
     if (!navigator.onLine || !getToken()) return null;
+    if (_saving) return null; // In-flight save will clear dirty when it finishes
 
     const cached = localStorage.getItem(CACHE_KEY);
     if (!cached) return null;
@@ -128,5 +143,5 @@ const GitHubAPI = (() => {
     return save(JSON.parse(cached));
   }
 
-  return { load, save, syncPending, getToken, setToken, clearToken, emptyProgress };
+  return { load, save, syncPending, getToken, setToken, clearToken, emptyProgress, isDirty };
 })();

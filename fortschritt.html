@@ -451,18 +451,29 @@ window.addEventListener('pageshow', async () => {
   laden();
   renderPanels();
 
-  // Im Hintergrund von GitHub nachladen
   if (GitHubAPI.getToken()) {
     try {
-      progressCache = await GitHubAPI.load();
-      if (progressCache.fortschritt && Object.keys(progressCache.fortschritt).length) {
-        leereDaten();
-        wendeGitHubDatenAn(progressCache.fortschritt);
-        speichernLokal();
-        renderPanels();
+      if (GitHubAPI.isDirty()) {
+        // Lokale Änderungen sind noch nicht gespeichert → zuerst hochladen,
+        // nicht mit möglicherweise älteren GitHub-Daten überschreiben
+        await syncZuGitHub();
+      } else {
+        // Keine ausstehenden Änderungen → GitHub-Stand holen (anderes Gerät?)
+        progressCache = await GitHubAPI.load();
+        if (progressCache.fortschritt && Object.keys(progressCache.fortschritt).length) {
+          leereDaten();
+          wendeGitHubDatenAn(progressCache.fortschritt);
+          speichernLokal();
+          renderPanels();
+        }
       }
     } catch(e) {}
   }
+});
+
+// Wenn Gerät wieder online kommt: ausstehende Änderungen synchronisieren
+window.addEventListener('online', () => {
+  GitHubAPI.syncPending();
 });
 
 // ── Archiv API ────────────────────────────────────────────
@@ -513,7 +524,11 @@ const ArchivAPI = (() => {
       }
     } catch(e) {
       const c = localStorage.getItem(CACHE);
-      if (c) current = JSON.parse(c).data || { durchlaeufe: [] };
+      if (c) {
+        const cached = JSON.parse(c);
+        current = cached.data || { durchlaeufe: [] };
+        sha = cached.sha || null; // gecachte SHA als Fallback bei Netzwerkfehler
+      }
     }
     current.durchlaeufe.push(eintrag);
     const body = { message: 'chore: Durchlauf archiviert', content: b64e(JSON.stringify(current, null, 2)) };
