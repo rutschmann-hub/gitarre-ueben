@@ -260,6 +260,19 @@ function zeitstempel() {
   return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
+const STARTDATEN_KEY = 'gitueben_fortschritt_start';
+function getStartDaten() {
+  try { return JSON.parse(localStorage.getItem(STARTDATEN_KEY)) || {}; } catch(e) { return {}; }
+}
+function setStartDatum(key) {
+  const sd = getStartDaten();
+  if (!sd[key]) {
+    const h = new Date();
+    sd[key] = `${String(h.getDate()).padStart(2,'0')}.${String(h.getMonth()+1).padStart(2,'0')}.${h.getFullYear()}`;
+    localStorage.setItem(STARTDATEN_KEY, JSON.stringify(sd));
+  }
+}
+
 function updateProgress(key) {
   const done  = countDone(key);
   const pct   = Math.round((done / 576) * 100);
@@ -394,6 +407,7 @@ document.getElementById('tabPanels').addEventListener('change', e => {
   const i = +idx;
   if (e.target.checked) {
     if (daten[key][i].count === 0) {
+      if (countTotal(key) === 0) setStartDatum(key);
       daten[key][i].count = 1;
       daten[key][i].zeit  = zeitstempel();
       const zeitEl = document.getElementById(`zeit-${key}-${i}`);
@@ -502,8 +516,16 @@ const ArchivAPI = (() => {
     let sha = null, current = { durchlaeufe: [] };
     try {
       const r = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/${FILE}`, { headers: hdrs() });
-      if (r.ok) { const d = await r.json(); sha = d.sha; current = JSON.parse(b64d(d.content)); }
-    } catch(e) {}
+      if (r.ok) {
+        const d = await r.json(); sha = d.sha; current = JSON.parse(b64d(d.content));
+      } else if (r.status === 404) {
+        const c = localStorage.getItem(CACHE);
+        if (c) current = JSON.parse(c).data || { durchlaeufe: [] };
+      }
+    } catch(e) {
+      const c = localStorage.getItem(CACHE);
+      if (c) current = JSON.parse(c).data || { durchlaeufe: [] };
+    }
     current.durchlaeufe.push(eintrag);
     const body = { message: 'chore: Durchlauf archiviert', content: b64e(JSON.stringify(current, null, 2)) };
     if (sha) body.sha = sha;
@@ -531,47 +553,59 @@ let archivDaten = null;
 async function ladeUndZeigeVerlauf() {
   const panel = document.getElementById('panel-verlauf');
   if (!panel) return;
-  panel.innerHTML = '<p style="font-family:\'DM Mono\',monospace;font-size:0.82rem;color:var(--text3);padding:0.75rem 0;">⟳ Lädt…</p>';
+  if (!archivDaten) { archivDaten = { durchlaeufe: [] }; renderVerlaufPanel(); }
   archivDaten = await ArchivAPI.laden();
   renderVerlaufPanel();
 }
 
 function renderVerlaufPanel() {
   const panel = document.getElementById('panel-verlauf');
-  if (!panel || !archivDaten) return;
-  const dl = archivDaten.durchlaeufe;
-  if (dl.length === 0) {
-    panel.innerHTML = '<p style="font-family:\'DM Mono\',monospace;font-size:0.82rem;color:var(--text3);padding:0.75rem 0;">Noch keine Durchläufe archiviert.</p>';
-    return;
-  }
-  const rows = [...dl].reverse().map((d, i) => {
-    const nr     = dl.length - i;
-    const felder = ['dom7','maj7','moll7','moll7b5'].map(k => {
-      const raw    = d[k] ?? 0;
-      const unique = typeof raw === 'object' ? (raw.unique ?? 0) : raw;
-      const total  = typeof raw === 'object' ? (raw.total  ?? 0) : 0;
-      const col    = unique === 576 ? 'var(--accent2)' : 'var(--text2)';
-      const txt    = total > unique
-        ? `${unique} / 576 · ${total}×`
-        : `${unique} / 576`;
-      return `<td style="font-family:'DM Mono',monospace;font-size:0.82rem;color:${col};padding:0.35rem 0.7rem;">${txt}</td>`;
-    }).join('');
+  if (!panel) return;
+  const ZIEL       = 1000;
+  const startDaten = getStartDaten();
+
+  const rows = AKKORD_TYPEN.map(({ key, label }) => {
+    let total = 0, erstesDatum = null;
+
+    // Archiv-Einträge aufsummieren
+    if (archivDaten) {
+      archivDaten.durchlaeufe.forEach(d => {
+        const raw = d[key] ?? 0;
+        const t   = typeof raw === 'object' ? (raw.total ?? raw.unique ?? 0) : raw;
+        const sd  = typeof raw === 'object' ? raw.start : null;
+        if (t > 0 && !erstesDatum) erstesDatum = sd || d.datum;
+        total += t;
+      });
+    }
+
+    // Aktueller Durchlauf
+    const curr = countTotal(key);
+    if (curr > 0 && !erstesDatum) erstesDatum = startDaten[key] || null;
+    total += curr;
+
+    const pct    = Math.min(Math.round((total / ZIEL) * 100), 100);
+    const farbe  = total >= ZIEL ? 'var(--accent2)' : 'var(--accent)';
+    const txtCol = total >= ZIEL ? 'var(--accent2)' : 'var(--text2)';
+
     return `<tr>
-      <td class="td-nr">${nr}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--text2);padding:0.35rem 0.7rem;white-space:nowrap;">${d.datum}</td>
-      ${felder}
+      <td style="font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:600;color:var(--text);padding:0.7rem 0.75rem;white-space:nowrap;">${label}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text3);padding:0.7rem 0.75rem;white-space:nowrap;">${erstesDatum || '–'}</td>
+      <td style="padding:0.7rem 0.75rem;min-width:220px;">
+        <div style="font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:600;color:${txtCol};margin-bottom:6px;">${total} / ${ZIEL}</div>
+        <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${farbe};border-radius:4px;transition:width 0.4s ease;"></div>
+        </div>
+      </td>
     </tr>`;
   }).join('');
+
   panel.innerHTML = `
     <div class="combo-table-wrap">
       <table class="combo-table">
         <thead><tr>
-          <th class="th-nr">#</th>
-          <th>Datum</th>
-          <th>Dom 7</th>
-          <th>Maj 7</th>
-          <th>Moll 7</th>
-          <th>Moll 7/b5</th>
+          <th style="white-space:nowrap">Akkordtyp</th>
+          <th style="white-space:nowrap">Erste Übung</th>
+          <th>Geübt</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -580,15 +614,16 @@ function renderVerlaufPanel() {
 
 // ── Abschließen & Neu starten ─────────────────────────────
 async function abschliessenUndNeuStarten() {
-  const gesamtDone = AKKORD_TYPEN.reduce((s, {key}) => s + countDone(key), 0);
-  if (gesamtDone === 0) { alert('Es sind noch keine Kombinationen abgehakt.'); return; }
+  const gesamtTotal = AKKORD_TYPEN.reduce((s, {key}) => s + countTotal(key), 0);
+  if (gesamtTotal === 0) { alert('Es sind noch keine Kombinationen geübt worden.'); return; }
   if (!confirm('Aktuellen Fortschritt archivieren und alle vier Akkordtypen zurücksetzen?')) return;
 
   const heute = new Date();
   const datum = `${String(heute.getDate()).padStart(2,'0')}.${String(heute.getMonth()+1).padStart(2,'0')}.${heute.getFullYear()}`;
   const eintrag = { datum };
+  const startDaten = getStartDaten();
   AKKORD_TYPEN.forEach(({ key }) => {
-    eintrag[key] = { unique: countDone(key), total: countTotal(key) };
+    eintrag[key] = { unique: countDone(key), total: countTotal(key), start: startDaten[key] || datum };
   });
 
   const btn = document.getElementById('btn-abschliessen');
@@ -615,6 +650,7 @@ async function abschliessenUndNeuStarten() {
   AKKORD_TYPEN.forEach(({ key }) => {
     daten[key] = Array.from({ length: 576 }, () => ({ count: 0, zeit: '' }));
   });
+  localStorage.removeItem(STARTDATEN_KEY);
   speichern();
   renderPanels();
 
