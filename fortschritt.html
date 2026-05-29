@@ -159,6 +159,7 @@
   </div>
 </main>
 
+<script src="assets/github-api.js"></script>
 <script>
 const STORAGE_KEY = 'gitueben_fortschritt';
 
@@ -188,6 +189,19 @@ function leereDaten() {
   });
 }
 
+function wendeGitHubDatenAn(fortschrittObj) {
+  AKKORD_TYPEN.forEach(({ key }) => {
+    const arr = fortschrittObj[key];
+    if (!Array.isArray(arr)) return;
+    arr.forEach((v, i) => {
+      if (i >= 576) return;
+      daten[key][i] = typeof v === 'boolean'
+        ? { done: v, zeit: '' }
+        : { done: !!v?.done, zeit: v?.zeit || '' };
+    });
+  });
+}
+
 function laden() {
   leereDaten();
   try {
@@ -208,10 +222,28 @@ function laden() {
   } catch(e) {}
 }
 
-function speichern() {
+function speichernLokal() {
   const out = {};
   AKKORD_TYPEN.forEach(({ key }) => { out[key] = daten[key]; });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+}
+
+let progressCache = null;
+let saveTimer     = null;
+
+async function syncZuGitHub() {
+  if (!GitHubAPI.getToken()) return;
+  if (!progressCache) progressCache = await GitHubAPI.load();
+  const out = {};
+  AKKORD_TYPEN.forEach(({ key }) => { out[key] = daten[key]; });
+  progressCache.fortschritt = out;
+  await GitHubAPI.save(progressCache);
+}
+
+function speichern() {
+  speichernLokal();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(syncZuGitHub, 2500);
 }
 
 function countDone(key) {
@@ -392,9 +424,23 @@ document.getElementById('tabs').addEventListener('click', e => {
   if (activeTab === 'verlauf') ladeUndZeigeVerlauf();
 });
 
-window.addEventListener('pageshow', () => {
+window.addEventListener('pageshow', async () => {
+  // Sofort lokal anzeigen
   laden();
   renderPanels();
+
+  // Im Hintergrund von GitHub nachladen
+  if (GitHubAPI.getToken()) {
+    try {
+      progressCache = await GitHubAPI.load();
+      if (progressCache.fortschritt && Object.keys(progressCache.fortschritt).length) {
+        leereDaten();
+        wendeGitHubDatenAn(progressCache.fortschritt);
+        speichernLokal();
+        renderPanels();
+      }
+    } catch(e) {}
+  }
 });
 
 // ── Archiv API ────────────────────────────────────────────

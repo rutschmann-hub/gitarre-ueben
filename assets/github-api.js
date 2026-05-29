@@ -1,6 +1,6 @@
 /**
  * GitHub API module for reading/writing progress.json
- * Token stored in sessionStorage, data cached in localStorage for offline use.
+ * Token stored in localStorage (persistent), data cached in localStorage for offline use.
  */
 const GitHubAPI = (() => {
   const OWNER     = 'rutschmann-hub';
@@ -14,9 +14,9 @@ const GitHubAPI = (() => {
   const DIRTY_KEY = 'gitueben_dirty';
 
   // ── Token ──────────────────────────────────────────────────────────────
-  const getToken  = ()  => sessionStorage.getItem(TOKEN_KEY);
-  const setToken  = (t) => sessionStorage.setItem(TOKEN_KEY, t.trim());
-  const clearToken = () => sessionStorage.removeItem(TOKEN_KEY);
+  const getToken  = ()  => localStorage.getItem(TOKEN_KEY);
+  const setToken  = (t) => localStorage.setItem(TOKEN_KEY, t.trim());
+  const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 
   function buildHeaders() {
     const h = { Accept: 'application/vnd.github.v3+json' };
@@ -42,7 +42,7 @@ const GitHubAPI = (() => {
 
   // ── Empty data shape ───────────────────────────────────────────────────
   function emptyProgress() {
-    return { sequenzen: {}, skalen: {}, akkorde: {} };
+    return { sequenzen: {}, skalen: {}, akkorde: {}, fortschritt: {} };
   }
 
   // ── Load ───────────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ const GitHubAPI = (() => {
       const data    = await r.json();
       const content = JSON.parse(b64decode(data.content));
 
-      sessionStorage.setItem(SHA_KEY, data.sha);
+      localStorage.setItem(SHA_KEY, data.sha);
       localStorage.setItem(CACHE_KEY, JSON.stringify(content));
       localStorage.removeItem(DIRTY_KEY);
 
@@ -87,7 +87,7 @@ const GitHubAPI = (() => {
       return { ok: false, reason: 'offline' };
     }
 
-    const sha     = sessionStorage.getItem(SHA_KEY);
+    const sha     = localStorage.getItem(SHA_KEY);
     const content = b64encode(JSON.stringify(data, null, 2));
     const body    = { message: 'chore: update progress', content };
     if (sha) body.sha = sha;
@@ -105,7 +105,7 @@ const GitHubAPI = (() => {
       }
 
       const result = await r.json();
-      sessionStorage.setItem(SHA_KEY, result.content.sha);
+      localStorage.setItem(SHA_KEY, result.content.sha);
       localStorage.removeItem(DIRTY_KEY);
       return { ok: true };
     } catch (err) {
