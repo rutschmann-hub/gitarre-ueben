@@ -185,7 +185,7 @@ const PFEILE_PERMS  = allePerms(['↑↑','↓↓','↑↓','↓↑']).map(p => 
 let daten = {};
 function leereDaten() {
   AKKORD_TYPEN.forEach(({ key }) => {
-    daten[key] = Array.from({ length: 576 }, () => ({ done: false, zeit: '' }));
+    daten[key] = Array.from({ length: 576 }, () => ({ count: 0, zeit: '' }));
   });
 }
 
@@ -195,9 +195,9 @@ function wendeGitHubDatenAn(fortschrittObj) {
     if (!Array.isArray(arr)) return;
     arr.forEach((v, i) => {
       if (i >= 576) return;
-      daten[key][i] = typeof v === 'boolean'
-        ? { done: v, zeit: '' }
-        : { done: !!v?.done, zeit: v?.zeit || '' };
+      const c = typeof v === 'boolean' ? (v ? 1 : 0)
+              : (typeof v?.count === 'number' ? v.count : (v?.done ? 1 : 0));
+      daten[key][i] = { count: c, zeit: v?.zeit || '' };
     });
   });
 }
@@ -213,9 +213,10 @@ function laden() {
       saved[key].forEach((v, i) => {
         if (i >= 576) return;
         if (typeof v === 'boolean') {
-          daten[key][i] = { done: v, zeit: '' };
+          daten[key][i] = { count: v ? 1 : 0, zeit: '' };
         } else if (v && typeof v === 'object') {
-          daten[key][i] = { done: !!v.done, zeit: v.zeit || '' };
+          const c = typeof v.count === 'number' ? v.count : (v.done ? 1 : 0);
+          daten[key][i] = { count: c, zeit: v.zeit || '' };
         }
       });
     });
@@ -247,7 +248,16 @@ function speichern() {
 }
 
 function countDone(key) {
-  return daten[key].reduce((s, v) => s + (v.done ? 1 : 0), 0);
+  return daten[key].reduce((s, v) => s + (v.count > 0 ? 1 : 0), 0);
+}
+
+function countTotal(key) {
+  return daten[key].reduce((s, v) => s + (v.count || 0), 0);
+}
+
+function zeitstempel() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
 function updateProgress(key) {
@@ -335,13 +345,13 @@ function renderPanels() {
 
       const tr = document.createElement('tr');
       tr.id = `r-${key}-${originalIdx}`;
-      if (entry.done) tr.classList.add('erledigt');
+      if (entry.count > 0) tr.classList.add('erledigt');
 
       const tdCb = document.createElement('td');
       tdCb.className = 'td-cb';
       const cb = document.createElement('input');
       cb.type = 'checkbox'; cb.className = 'combo-cb';
-      cb.checked = entry.done;
+      cb.checked = entry.count > 0;
       cb.dataset.key = key; cb.dataset.idx = originalIdx;
       tdCb.appendChild(cb);
       tr.appendChild(tdCb);
@@ -362,7 +372,9 @@ function renderPanels() {
       const tdZeit = document.createElement('td');
       tdZeit.className = 'td-zeit';
       tdZeit.id = `zeit-${key}-${originalIdx}`;
-      tdZeit.textContent = entry.zeit;
+      tdZeit.textContent = entry.count > 1
+        ? `${entry.count}× · ${entry.zeit}`
+        : entry.zeit;
       tr.appendChild(tdZeit);
 
       tbody.appendChild(tr);
@@ -380,13 +392,20 @@ document.getElementById('tabPanels').addEventListener('change', e => {
   if (!e.target.matches('.combo-cb')) return;
   const { key, idx } = e.target.dataset;
   const i = +idx;
-  daten[key][i].done = e.target.checked;
-  if (!e.target.checked) {
-    daten[key][i].zeit = '';
+  if (e.target.checked) {
+    if (daten[key][i].count === 0) {
+      daten[key][i].count = 1;
+      daten[key][i].zeit  = zeitstempel();
+      const zeitEl = document.getElementById(`zeit-${key}-${i}`);
+      if (zeitEl) zeitEl.textContent = daten[key][i].zeit;
+    }
+  } else {
+    daten[key][i].count = 0;
+    daten[key][i].zeit  = '';
     const zeitEl = document.getElementById(`zeit-${key}-${i}`);
     if (zeitEl) zeitEl.textContent = '';
   }
-  document.getElementById(`r-${key}-${i}`)?.classList.toggle('erledigt', e.target.checked);
+  document.getElementById(`r-${key}-${i}`)?.classList.toggle('erledigt', daten[key][i].count > 0);
   updateProgress(key);
   speichern();
 });
@@ -528,9 +547,14 @@ function renderVerlaufPanel() {
   const rows = [...dl].reverse().map((d, i) => {
     const nr     = dl.length - i;
     const felder = ['dom7','maj7','moll7','moll7b5'].map(k => {
-      const v   = d[k] ?? 0;
-      const col = v === 576 ? 'var(--accent2)' : 'var(--text2)';
-      return `<td style="font-family:'DM Mono',monospace;font-size:0.82rem;color:${col};padding:0.35rem 0.7rem;">${v} / 576</td>`;
+      const raw    = d[k] ?? 0;
+      const unique = typeof raw === 'object' ? (raw.unique ?? 0) : raw;
+      const total  = typeof raw === 'object' ? (raw.total  ?? 0) : 0;
+      const col    = unique === 576 ? 'var(--accent2)' : 'var(--text2)';
+      const txt    = total > unique
+        ? `${unique} / 576 · ${total}×`
+        : `${unique} / 576`;
+      return `<td style="font-family:'DM Mono',monospace;font-size:0.82rem;color:${col};padding:0.35rem 0.7rem;">${txt}</td>`;
     }).join('');
     return `<tr>
       <td class="td-nr">${nr}</td>
@@ -563,7 +587,9 @@ async function abschliessenUndNeuStarten() {
   const heute = new Date();
   const datum = `${String(heute.getDate()).padStart(2,'0')}.${String(heute.getMonth()+1).padStart(2,'0')}.${heute.getFullYear()}`;
   const eintrag = { datum };
-  AKKORD_TYPEN.forEach(({ key }) => { eintrag[key] = countDone(key); });
+  AKKORD_TYPEN.forEach(({ key }) => {
+    eintrag[key] = { unique: countDone(key), total: countTotal(key) };
+  });
 
   const btn = document.getElementById('btn-abschliessen');
   btn.disabled = true;
@@ -587,7 +613,7 @@ async function abschliessenUndNeuStarten() {
 
   // Zurücksetzen
   AKKORD_TYPEN.forEach(({ key }) => {
-    daten[key] = Array.from({ length: 576 }, () => ({ done: false, zeit: '' }));
+    daten[key] = Array.from({ length: 576 }, () => ({ count: 0, zeit: '' }));
   });
   speichern();
   renderPanels();

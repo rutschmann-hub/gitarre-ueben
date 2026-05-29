@@ -704,7 +704,7 @@ function markiereGeuebt() {
   const FORT_KEY = 'gitueben_fortschritt';
   const AKKORDS  = ['dom7','maj7','moll7','moll7b5'];
   let daten = {};
-  AKKORDS.forEach(k => { daten[k] = Array.from({length:576}, () => ({done:false,zeit:''})); });
+  AKKORDS.forEach(k => { daten[k] = Array.from({length:576}, () => ({count:0,zeit:''})); });
   try {
     const raw = localStorage.getItem(FORT_KEY);
     if (raw) {
@@ -713,12 +713,17 @@ function markiereGeuebt() {
         if (!Array.isArray(saved[k])) return;
         saved[k].forEach((v,i) => {
           if (i >= 576) return;
-          daten[k][i] = typeof v === 'boolean' ? {done:v,zeit:''} : {done:!!v?.done, zeit:v?.zeit||''};
+          const c = typeof v === 'boolean' ? (v ? 1 : 0)
+                  : (typeof v?.count === 'number' ? v.count : (v?.done ? 1 : 0));
+          daten[k][i] = { count: c, zeit: v?.zeit || '' };
         });
       });
     }
   } catch(e) {}
-  daten[aktuellerTyp][comboIdx] = { done: true, zeit: zeitstempel() };
+  daten[aktuellerTyp][comboIdx] = {
+    count: (daten[aktuellerTyp][comboIdx].count || 0) + 1,
+    zeit:  zeitstempel(),
+  };
   localStorage.setItem(FORT_KEY, JSON.stringify(daten));
 
   const btn = document.getElementById('btn-geuebt');
