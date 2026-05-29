@@ -323,7 +323,6 @@ function renderPanels() {
           <div class="progress-bar-fill" id="bar-${key}" style="width:${pct}%"></div>
         </div>
         <span id="label-${key}" style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text2);white-space:nowrap;min-width:6.5rem;text-align:right;">${done} / 576 (${pct} %)</span>
-        <button class="btn btn-ghost btn-sm" data-resetkey="${key}">Zurücksetzen</button>
       </div>
     `;
 
@@ -435,16 +434,6 @@ document.getElementById('tabPanels').addEventListener('click', e => {
     return;
   }
 
-  // Zurücksetzen
-  const btn = e.target.closest('[data-resetkey]');
-  if (!btn) return;
-  const key = btn.dataset.resetkey;
-  const typLabel = AKKORD_TYPEN.find(a => a.key === key)?.label;
-  if (!confirm(`Alle 576 Einträge für "${typLabel}" zurücksetzen?`)) return;
-  daten[key] = Array.from({ length: 576 }, () => ({ done: false, zeit: '' }));
-  updateProgress(key);
-  speichern();
-  renderPanels();
 });
 
 // ── Tabs ─────────────────────────────────────────────────
