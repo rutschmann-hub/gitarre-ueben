@@ -140,6 +140,9 @@
     <div class="page-hero">
       <h1 class="page-hero-title">Alle Kombinationen</h1>
       <p class="page-hero-subtitle">576 Kombinationen pro Akkordtyp – 24 Ziffernfolgen × 24 Pfeilfolgen</p>
+      <div style="margin-top:1rem">
+        <button class="btn btn-primary" id="btn-abschliessen" onclick="abschliessenUndNeuStarten()">Abschließen &amp; Neu starten</button>
+      </div>
     </div>
 
     <div class="tabs" id="tabs">
@@ -147,9 +150,11 @@
       <button class="tab-btn" data-tab="maj7">Maj 7</button>
       <button class="tab-btn" data-tab="moll7">Moll 7</button>
       <button class="tab-btn" data-tab="moll7b5">Moll 7/b5</button>
+      <button class="tab-btn" data-tab="verlauf">Verlauf</button>
     </div>
 
     <div id="tabPanels"></div>
+    <div id="panel-verlauf" class="tab-panel"></div>
 
   </div>
 </main>
@@ -384,12 +389,166 @@ document.getElementById('tabs').addEventListener('click', e => {
   activeTab = btn.dataset.tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('aktiv', b === btn));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('aktiv', p.id === `panel-${activeTab}`));
+  if (activeTab === 'verlauf') ladeUndZeigeVerlauf();
 });
 
 window.addEventListener('pageshow', () => {
   laden();
   renderPanels();
 });
+
+// ── Archiv API ────────────────────────────────────────────
+const ArchivAPI = (() => {
+  const OWNER = 'rutschmann-hub';
+  const REPO  = 'gitarre-ueben';
+  const FILE  = 'data/archiv.json';
+  const API   = 'https://api.github.com';
+  const CACHE = 'gitueben_archiv';
+
+  const token  = () => sessionStorage.getItem('gh_token');
+  const hdrs   = () => {
+    const h = { Accept: 'application/vnd.github.v3+json' };
+    if (token()) h.Authorization = `token ${token()}`;
+    return h;
+  };
+  const b64d = s => { const b = atob(s.replace(/\s/g,'')); const a = new Uint8Array(b.length); for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return new TextDecoder().decode(a); };
+  const b64e = s => { const a = new TextEncoder().encode(s); let r=''; a.forEach(x=>r+=String.fromCharCode(x)); return btoa(r); };
+
+  async function laden() {
+    try {
+      const r = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/${FILE}`, { headers: hdrs() });
+      if (r.status === 404) return { durchlaeufe: [] };
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json();
+      const content = JSON.parse(b64d(d.content));
+      localStorage.setItem(CACHE, JSON.stringify({ sha: d.sha, data: content }));
+      return content;
+    } catch(e) {
+      const c = localStorage.getItem(CACHE);
+      return c ? JSON.parse(c).data : { durchlaeufe: [] };
+    }
+  }
+
+  async function hinzufuegen(eintrag) {
+    if (!token()) return { ok: false, reason: 'no_token' };
+    let sha = null, current = { durchlaeufe: [] };
+    try {
+      const r = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/${FILE}`, { headers: hdrs() });
+      if (r.ok) { const d = await r.json(); sha = d.sha; current = JSON.parse(b64d(d.content)); }
+    } catch(e) {}
+    current.durchlaeufe.push(eintrag);
+    const body = { message: 'chore: Durchlauf archiviert', content: b64e(JSON.stringify(current, null, 2)) };
+    if (sha) body.sha = sha;
+    try {
+      const r = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/${FILE}`, {
+        method: 'PUT',
+        headers: { ...hdrs(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.message || `HTTP ${r.status}`); }
+      const result = await r.json();
+      localStorage.setItem(CACHE, JSON.stringify({ sha: result.content.sha, data: current }));
+      return { ok: true };
+    } catch(e) {
+      return { ok: false, reason: e.message };
+    }
+  }
+
+  return { laden, hinzufuegen, hatToken: () => !!token() };
+})();
+
+// ── Verlauf ───────────────────────────────────────────────
+let archivDaten = null;
+
+async function ladeUndZeigeVerlauf() {
+  const panel = document.getElementById('panel-verlauf');
+  if (!panel) return;
+  panel.innerHTML = '<p style="font-family:\'DM Mono\',monospace;font-size:0.82rem;color:var(--text3);padding:0.75rem 0;">⟳ Lädt…</p>';
+  archivDaten = await ArchivAPI.laden();
+  renderVerlaufPanel();
+}
+
+function renderVerlaufPanel() {
+  const panel = document.getElementById('panel-verlauf');
+  if (!panel || !archivDaten) return;
+  const dl = archivDaten.durchlaeufe;
+  if (dl.length === 0) {
+    panel.innerHTML = '<p style="font-family:\'DM Mono\',monospace;font-size:0.82rem;color:var(--text3);padding:0.75rem 0;">Noch keine Durchläufe archiviert.</p>';
+    return;
+  }
+  const rows = [...dl].reverse().map((d, i) => {
+    const nr     = dl.length - i;
+    const felder = ['dom7','maj7','moll7','moll7b5'].map(k => {
+      const v   = d[k] ?? 0;
+      const col = v === 576 ? 'var(--accent2)' : 'var(--text2)';
+      return `<td style="font-family:'DM Mono',monospace;font-size:0.82rem;color:${col};padding:0.35rem 0.7rem;">${v} / 576</td>`;
+    }).join('');
+    return `<tr>
+      <td class="td-nr">${nr}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--text2);padding:0.35rem 0.7rem;white-space:nowrap;">${d.datum}</td>
+      ${felder}
+    </tr>`;
+  }).join('');
+  panel.innerHTML = `
+    <div class="combo-table-wrap">
+      <table class="combo-table">
+        <thead><tr>
+          <th class="th-nr">#</th>
+          <th>Datum</th>
+          <th>Dom 7</th>
+          <th>Maj 7</th>
+          <th>Moll 7</th>
+          <th>Moll 7/b5</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ── Abschließen & Neu starten ─────────────────────────────
+async function abschliessenUndNeuStarten() {
+  const gesamtDone = AKKORD_TYPEN.reduce((s, {key}) => s + countDone(key), 0);
+  if (gesamtDone === 0) { alert('Es sind noch keine Kombinationen abgehakt.'); return; }
+  if (!confirm('Aktuellen Fortschritt archivieren und alle vier Akkordtypen zurücksetzen?')) return;
+
+  const heute = new Date();
+  const datum = `${String(heute.getDate()).padStart(2,'0')}.${String(heute.getMonth()+1).padStart(2,'0')}.${heute.getFullYear()}`;
+  const eintrag = { datum };
+  AKKORD_TYPEN.forEach(({ key }) => { eintrag[key] = countDone(key); });
+
+  const btn = document.getElementById('btn-abschliessen');
+  btn.disabled = true;
+  btn.textContent = '⟳ Speichert…';
+
+  if (ArchivAPI.hatToken()) {
+    const result = await ArchivAPI.hinzufuegen(eintrag);
+    btn.disabled = false;
+    btn.textContent = 'Abschließen & Neu starten';
+    if (!result.ok) { alert(`Archivierung fehlgeschlagen: ${result.reason}`); return; }
+  } else {
+    // Lokal zwischenspeichern
+    const c = localStorage.getItem('gitueben_archiv');
+    const archiv = c ? JSON.parse(c).data : { durchlaeufe: [] };
+    archiv.durchlaeufe.push(eintrag);
+    localStorage.setItem('gitueben_archiv', JSON.stringify({ sha: null, data: archiv }));
+    archivDaten = archiv;
+    btn.disabled = false;
+    btn.textContent = 'Abschließen & Neu starten';
+  }
+
+  // Zurücksetzen
+  AKKORD_TYPEN.forEach(({ key }) => {
+    daten[key] = Array.from({ length: 576 }, () => ({ done: false, zeit: '' }));
+  });
+  speichern();
+  renderPanels();
+
+  // Zum Verlauf-Tab wechseln
+  activeTab = 'verlauf';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('aktiv', b.dataset.tab === 'verlauf'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('aktiv', p.id === 'panel-verlauf'));
+  ladeUndZeigeVerlauf();
+}
 </script>
 </body>
 </html>
