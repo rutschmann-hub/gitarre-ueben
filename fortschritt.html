@@ -452,6 +452,14 @@ window.addEventListener('pageshow', async () => {
   laden();
   renderPanels();
 
+  // Verlauf-Cache sofort aus localStorage vorab befüllen (kein Netzwerk nötig)
+  if (!archivDaten) {
+    try {
+      const c = localStorage.getItem('gitueben_archiv');
+      if (c) archivDaten = JSON.parse(c).data || { durchlaeufe: [] };
+    } catch(e) {}
+  }
+
   if (GitHubAPI.getToken()) {
     try {
       if (GitHubAPI.isDirty()) {
@@ -519,9 +527,14 @@ const ArchivAPI = (() => {
       const r = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/${FILE}`, { headers: hdrs() });
       if (r.ok) {
         const d = await r.json(); sha = d.sha; current = JSON.parse(b64d(d.content));
-      } else if (r.status === 404) {
+      } else {
+        // 404 = neue Datei; alle anderen Status → aus Cache laden (Einträge erhalten)
         const c = localStorage.getItem(CACHE);
-        if (c) current = JSON.parse(c).data || { durchlaeufe: [] };
+        if (c) {
+          const cached = JSON.parse(c);
+          current = cached.data || { durchlaeufe: [] };
+          if (r.status !== 404) sha = cached.sha || null; // gecachte SHA für vorhandene Datei
+        }
       }
     } catch(e) {
       const c = localStorage.getItem(CACHE);
@@ -558,9 +571,22 @@ let archivDaten = null;
 async function ladeUndZeigeVerlauf() {
   const panel = document.getElementById('panel-verlauf');
   if (!panel) return;
-  if (!archivDaten) { archivDaten = { durchlaeufe: [] }; renderVerlaufPanel(); }
-  archivDaten = await ArchivAPI.laden();
+
+  // Sofort aus localStorage-Cache rendern (kein Netzwerk nötig)
+  if (!archivDaten) {
+    try {
+      const c = localStorage.getItem('gitueben_archiv');
+      archivDaten = c ? (JSON.parse(c).data || { durchlaeufe: [] }) : { durchlaeufe: [] };
+    } catch(e) { archivDaten = { durchlaeufe: [] }; }
+  }
   renderVerlaufPanel();
+
+  // Im Hintergrund von GitHub aktualisieren
+  const fresh = await ArchivAPI.laden();
+  if (fresh && Array.isArray(fresh.durchlaeufe)) {
+    archivDaten = fresh;
+    renderVerlaufPanel();
+  }
 }
 
 function renderVerlaufPanel() {
