@@ -55,6 +55,52 @@
         "total": 0,
         "start": "29.05.2026"
       }
+    },
+    {
+      "datum": "30.05.2026",
+      "dom7": {
+        "unique": 4,
+        "total": 4,
+        "start": "30.05.2026"
+      },
+      "maj7": {
+        "unique": 0,
+        "total": 0,
+        "start": "30.05.2026"
+      },
+      "moll7": {
+        "unique": 0,
+        "total": 0,
+        "start": "30.05.2026"
+      },
+      "moll7b5": {
+        "unique": 0,
+        "total": 0,
+        "start": "30.05.2026"
+      }
+    },
+    {
+      "datum": "30.05.2026",
+      "dom7": {
+        "unique": 7,
+        "total": 7,
+        "start": "30.05.2026"
+      },
+      "maj7": {
+        "unique": 3,
+        "total": 3,
+        "start": "30.05.2026"
+      },
+      "moll7": {
+        "unique": 0,
+        "total": 0,
+        "start": "30.05.2026"
+      },
+      "moll7b5": {
+        "unique": 0,
+        "total": 0,
+        "start": "30.05.2026"
+      }
     }
   ]
 }
