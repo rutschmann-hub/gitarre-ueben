@@ -726,6 +726,7 @@ function markiereGeuebt() {
     zeit:  zeitstempel(),
   };
   localStorage.setItem(FORT_KEY, JSON.stringify(daten));
+  localStorage.setItem('gitueben_dirty', '1'); // signalisiert fortschritt.html: lokale Daten zuerst hochladen
 
   const btn = document.getElementById('btn-geuebt');
   btn.textContent = '✓ Gespeichert';
