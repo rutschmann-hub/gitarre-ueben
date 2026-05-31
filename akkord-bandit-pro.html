@@ -316,14 +316,14 @@
       border-style: dashed;
       opacity: 0.3;
     }
-    /* Musikpausen: lokale Teilmenge (nur 𝄾 𝄿) – kein Netz nötig */
+    /* Bravura: SMuFL-Referenzfont, enthält 𝄾 (U+1D13E) und 𝄿 (U+1D13F) */
     @font-face {
-      font-family: 'Noto Sans Symbols 2';
-      src: url('assets/fonts/noto-music-subset.ttf') format('truetype');
+      font-family: 'Bravura';
+      src: url('assets/fonts/music-rests.woff2') format('woff2');
       font-display: swap;
     }
     .nrest {
-      font-family: 'Noto Sans Symbols 2', 'Apple Symbols', 'Segoe UI Symbol', serif;
+      font-family: 'Bravura', 'Apple Symbols', 'Segoe UI Symbol', serif;
     }
 
     /* ─── Scrollbar ────────────────────────────────────── */
