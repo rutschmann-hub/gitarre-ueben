@@ -394,7 +394,7 @@
         </div>
       </div>
       <div class="settings-sep"></div>
-      <span class="pro-info">🎯 10 Pfeil-Symbole · P(10,4) = 5040 Kombinationen</span>
+      <span class="pro-info">🎯 12 Pfeil-Symbole · P(12,4) = 11880 Kombinationen</span>
     </div>
 
     <!-- Akkord name -->
@@ -477,7 +477,7 @@ const akkordTypen = {
 const ziffernSymbole = ['1','3','5','7'];
 
 // ── Erweiterte Pfeil-Symbole (10 Stück, keine Wiederholung in einer Kombo) ──
-const pfeilSymbole = ['↑','↓','↑↑','↓↓','↑↓','↓↑','↓↓↑','↓↑↑','↓↑↓','↑↓↑'];
+const pfeilSymbole = ['↑','↓','↑↑','↓↓','↑↓','↓↑','↓↓↑','↓↑↑','↓↑↓','↑↓↑','↓↓↓','↑↑↑'];
 
 function allePerms(arr) {
   const res = [];
@@ -813,7 +813,7 @@ function zeitstempel() {
 function markiereGeuebt() {
   if (!letzteZiffern || !letztePfeile) return;
 
-  // Einfacher Zähler pro Akkordtyp (kein 576er-Raster, da 5040 Pfeil-Kombinationen)
+  // Einfacher Zähler pro Akkordtyp (kein 576er-Raster, da 11880 Pfeil-Kombinationen)
   const PRO_KEY = 'gitueben_pro_geuebt';
   let zaehler = {};
   try { zaehler = JSON.parse(localStorage.getItem(PRO_KEY) || '{}'); } catch(e) {}
