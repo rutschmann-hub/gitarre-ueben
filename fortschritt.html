@@ -131,7 +131,11 @@
   <div class="app-header-inner">
     <a class="back-btn" href="index.html">← Übersicht</a>
     <span class="header-title">Fortschritt</span>
-    <a class="btn btn-ghost btn-sm" href="akkord-bandit.html">🎲 Akkord Bandit</a>
+    <div style="display:flex;gap:4px;align-items:center">
+      <a class="btn btn-ghost btn-sm" href="akkord-bandit.html">🎲 Bandit</a>
+      <a class="btn btn-ghost btn-sm" href="akkord-bandit-pro.html">🎯 Pro</a>
+      <a class="btn btn-ghost btn-sm" style="opacity:0.45;pointer-events:none">✅ Fortschritt</a>
+    </div>
   </div>
 </header>
 
@@ -595,6 +599,10 @@ function renderVerlaufPanel() {
   const ZIEL       = 1000;
   const startDaten = getStartDaten();
 
+  // Pro-Zähler direkt aus localStorage (kein Archivierungsschritt nötig)
+  let proGeuebt = {};
+  try { proGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}
+
   const rows = AKKORD_TYPEN.map(({ key, label }) => {
     let total = 0, erstesDatum = null;
 
@@ -617,6 +625,7 @@ function renderVerlaufPanel() {
     const pct    = Math.min(Math.round((total / ZIEL) * 100), 100);
     const farbe  = total >= ZIEL ? 'var(--accent2)' : 'var(--accent)';
     const txtCol = total >= ZIEL ? 'var(--accent2)' : 'var(--text2)';
+    const pro    = proGeuebt[key] || 0;
 
     return `<tr>
       <td style="font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:600;color:var(--text);padding:0.7rem 0.75rem;white-space:nowrap;">${label}</td>
@@ -627,6 +636,7 @@ function renderVerlaufPanel() {
           <div style="height:100%;width:${pct}%;background:${farbe};border-radius:4px;transition:width 0.4s ease;"></div>
         </div>
       </td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:600;color:var(--accent);padding:0.7rem 0.75rem;text-align:center;">${pro > 0 ? pro : '–'}</td>
     </tr>`;
   }).join('');
 
@@ -637,6 +647,7 @@ function renderVerlaufPanel() {
           <th style="white-space:nowrap">Akkordtyp</th>
           <th style="white-space:nowrap">Erste Übung</th>
           <th>Geübt</th>
+          <th style="white-space:nowrap">Geübt Pro</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
