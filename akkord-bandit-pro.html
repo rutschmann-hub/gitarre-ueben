@@ -6,9 +6,6 @@
   <title>Akkord Bandit Pro – Gitarrenübungen</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="stylesheet" href="assets/style.css">
-  <!-- Noto Sans Symbols 2 enthält den Unicode-Block Musical Symbols (U+1D100–U+1D1FF) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap" rel="stylesheet">
   <style>
     body { display: flex; flex-direction: column; min-height: 100vh; }
 
@@ -319,7 +316,12 @@
       border-style: dashed;
       opacity: 0.3;
     }
-    /* Musikpausen-Font: Noto Sans Symbols 2 → Apple Symbols → Segoe UI Symbol */
+    /* Musikpausen: lokale Teilmenge (nur 𝄾 𝄿) – kein Netz nötig */
+    @font-face {
+      font-family: 'Noto Sans Symbols 2';
+      src: url('assets/fonts/noto-music-subset.ttf') format('truetype');
+      font-display: swap;
+    }
     .nrest {
       font-family: 'Noto Sans Symbols 2', 'Apple Symbols', 'Segoe UI Symbol', serif;
     }
