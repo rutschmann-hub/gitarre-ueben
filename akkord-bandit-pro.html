@@ -826,10 +826,11 @@ function notationSVG(symbol) {
   // U+1D13E 𝄾 = Achtelpause     → Noto Sans Symbols 2 (Google Fonts)
   // U+1D13F 𝄿 = Sechzehntelpause
   // CSS-Klasse .nrest liefert den richtigen Font; \u{...} ist sichere ES6-Notation
+  // y=46: Grundlinie nach unten → Bravura-Glyphe wandert nach oben, Mitte ≈ Notenkopf-Höhe
   const er = (x, sz=26) =>
-    `<text x="${x}" y="38" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13E}</text>`;
+    `<text x="${x}" y="46" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13E}</text>`;
   const sr = (x, sz=26) =>
-    `<text x="${x}" y="38" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13F}</text>`;
+    `<text x="${x}" y="46" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13F}</text>`;
 
   // ── Zusammensetzen je Pfeil-Typ ──────────────────────
   let inner = '';
@@ -837,13 +838,13 @@ function notationSVG(symbol) {
 
   if (len === 1) {
     // Achtelpause | Sechzehntelpause | Sechzehntelnote
-    inner = er(2, 22) + sr(20, 22) + nh(55) + st(55) + fl(55);
+    inner = er(2, 22) + sr(22, 22) + nh(52) + st(52) + fl(52);
   } else if (len === 2) {
     // Achtelpause | 2 beamed Sechzehntelnoten
-    inner = er(2) + nh(36) + st(36) + nh(58) + st(58) + bm(36, 58);
+    inner = er(4) + nh(32) + st(32) + nh(56) + st(56) + bm(32, 56);
   } else {
     // Sechzehntelpause | 3 beamed Sechzehntelnoten
-    inner = sr(2) + nh(26) + st(26) + nh(46) + st(46) + nh(65) + st(65) + bm(26, 65);
+    inner = sr(4) + nh(25) + st(25) + nh(45) + st(45) + nh(64) + st(64) + bm(25, 64);
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 54" style="display:block">${inner}</svg>`;
