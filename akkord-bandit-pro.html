@@ -826,11 +826,11 @@ function notationSVG(symbol) {
   // U+1D13E 𝄾 = Achtelpause     → Noto Sans Symbols 2 (Google Fonts)
   // U+1D13F 𝄿 = Sechzehntelpause
   // CSS-Klasse .nrest liefert den richtigen Font; \u{...} ist sichere ES6-Notation
-  // y=46: Grundlinie nach unten → Bravura-Glyphe wandert nach oben, Mitte ≈ Notenkopf-Höhe
+  // y=24: Grundlinie hoch → Bravura-Glyphe auf Notenkopf-Höhe
   const er = (x, sz=26) =>
-    `<text x="${x}" y="46" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13E}</text>`;
+    `<text x="${x}" y="24" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13E}</text>`;
   const sr = (x, sz=26) =>
-    `<text x="${x}" y="46" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13F}</text>`;
+    `<text x="${x}" y="24" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13F}</text>`;
 
   // ── Zusammensetzen je Pfeil-Typ ──────────────────────
   let inner = '';
