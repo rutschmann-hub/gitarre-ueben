@@ -124,6 +124,29 @@
         "total": 0,
         "start": "31.05.2026"
       }
+    },
+    {
+      "datum": "01.06.2026",
+      "dom7": {
+        "unique": 10,
+        "total": 10,
+        "start": "01.06.2026"
+      },
+      "maj7": {
+        "unique": 0,
+        "total": 0,
+        "start": "01.06.2026"
+      },
+      "moll7": {
+        "unique": 0,
+        "total": 0,
+        "start": "01.06.2026"
+      },
+      "moll7b5": {
+        "unique": 0,
+        "total": 0,
+        "start": "01.06.2026"
+      }
     }
   ]
 }
