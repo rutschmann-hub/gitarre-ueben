@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Akkord-Griffbilder</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      background: #ffffff;
+      color: #1a1a1a;
+    }
+
+    .akkord-widget {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .control-row label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      white-space: nowrap;
+    }
+    select {
+      font-size: 13px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #fff;
+      color: #1a1a1a;
+      cursor: pointer;
+    }
+    select:hover { border-color: #888; }
+    select:focus { outline: 2px solid #185FA5; outline-offset: 1px; }
+
+    .nav-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .nav-btn:hover { background: #e8e8e8; }
+    .nav-btn:active { transform: scale(0.97); }
+
+    .badge {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a1a;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      padding: 4px 13px;
+      border-radius: 6px;
+      min-width: 44px;
+      text-align: center;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 0.9rem;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: #555;
+    }
+    .legend-dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 1.5px solid #185FA5;
+      background: #B5D4F4;
+      flex-shrink: 0;
+    }
+    .legend-dot.root { border-width: 2.8px; }
+
+    #akkord-fb {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .fb-scroll { overflow-x: auto; }
+
+    .akkord-desc {
+      margin-top: 0.55rem;
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #1e1a17; color: #e8e8e8; }
+      select { background: #2a2520; color: #e8e8e8; border-color: #444; }
+      .control-row label { color: #aaa; }
+      .nav-btn { background: #2a2520; color: #e8e8e8; border-color: #444; }
+      .nav-btn:hover { background: #333; }
+      .badge { background: #2a2520; color: #e8e8e8; border-color: #444; }
+      .legend-item { color: #aaa; }
+      .akkord-desc { color: #666; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="akkord-widget">
+
+  <div class="control-row">
+    <label for="chordSel">Akkord:</label>
+    <select id="chordSel" onchange="onChordChange()">
+      <option value="dom7">Dominant 7 (1 3 5 ♭7)</option>
+      <option value="maj7">Major 7 (1 3 5 7)</option>
+      <option value="min7">Moll 7 (1 ♭3 5 ♭7)</option>
+      <option value="min7b5">Moll 7♭5 (1 ♭3 ♭5 ♭7)</option>
+    </select>
+  </div>
+
+  <div class="control-row">
+    <label for="groupSel">Saite:</label>
+    <select id="groupSel" onchange="onGroupChange()">
+      <option value="1">1 — Tiefe E-Saite</option>
+      <option value="2" selected>2 — A-Saite</option>
+      <option value="3">3 — D-Saite</option>
+      <option value="4">4 — G-Saite</option>
+      <option value="5">5 — H-Saite</option>
+      <option value="6">6 — Hohe E-Saite</option>
+    </select>
+    <label for="shpSel">Griffbild:</label>
+    <select id="shpSel" onchange="onShpChange()"></select>
+    <button class="nav-btn" onclick="nav(-1)" aria-label="Vorheriges Griffbild">←</button>
+    <button class="nav-btn" onclick="nav(1)"  aria-label="Nächstes Griffbild">→</button>
+    <span class="badge" id="badge">2A</span>
+    <label for="labelSel" style="margin-left:8px">Anzeige:</label>
+    <select id="labelSel" onchange="render()">
+      <option value="iv">Intervall (1 ♭3 5 …)</option>
+      <option value="tone">Akkordton (C E G …)</option>
+    </select>
+  </div>
+
+  <div class="legend" id="legendBox"></div>
+
+  <div class="fb-scroll">
+    <svg id="akkord-fb" viewBox="0 0 700 260" style="min-width:580px"></svg>
+  </div>
+
+  <p class="akkord-desc" id="akkord-desc"></p>
+
+</div>
+
+<script>
+const OPEN_STR   = ['E','H','G','D','A','E'];
+const NOTES_FLAT = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const OPEN_SEMI  = [4, 11, 7, 2, 9, 4];
+
+function semisBetween(rootRow, targetRow) {
+  const steps = [5, 4, 5, 5, 5];
+  let s = 0;
+  if (targetRow < rootRow) {
+    for (let r = targetRow; r < rootRow; r++) s += steps[r];
+  } else if (targetRow > rootRow) {
+    for (let r = rootRow; r < targetRow; r++) s -= steps[r];
+  }
+  return s;
+}
+
+const CHORD_TYPES = {
+  dom7:   { name: 'Dom7',     ivs: ['1','3','5','b7'],   semis: [0,4,7,10] },
+  maj7:   { name: 'Maj7',     ivs: ['1','3','5','7'],    semis: [0,4,7,11] },
+  min7:   { name: 'Moll7',    ivs: ['1','b3','5','b7'],  semis: [0,3,7,10] },
+  min7b5: { name: 'Moll7♭5', ivs: ['1','b3','b5','b7'], semis: [0,3,6,10] },
+};
+
+const SHAPES_STD = [
+  {id:'a', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:0,sl:2},{sd:0,sl:3}]},
+  {id:'b', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:0,sl:2},{sd:-1,sl:3}]},
+  {id:'c', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:-1,sl:2},{sd:-1,sl:3}]},
+  {id:'d', dots:[{sd:0,sl:0},{sd:-2,sl:3},{sd:-1,sl:2},{sd:0,sl:1}]},
+  {id:'e', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-1,sl:2},{sd:-1,sl:3}]},
+  {id:'f', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:3},{sd:-1,sl:2}]},
+  {id:'g', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2},{sd:-2,sl:3}]},
+  {id:'h', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2},{sd:-3,sl:3}]},
+];
+
+const SHAPES_MIN7 = [
+  {id:'a', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:0,sl:2},{sd:0,sl:3}]},
+  {id:'b', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:0,sl:2},{sd:-1,sl:3}]},
+  {id:'c', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:-1,sl:2},{sd:-1,sl:3}]},
+  {id:'d', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:-1,sl:2},{sd:-2,sl:3}]},
+  {id:'e', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-1,sl:2},{sd:-1,sl:3}]},
+  {id:'f', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-1,sl:2},{sd:-2,sl:3}]},
+  {id:'g', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2},{sd:-2,sl:3}]},
+  {id:'h', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2},{sd:-3,sl:3}]},
+];
+
+const SHAPES_BY_CHORD = {
+  dom7: SHAPES_STD, maj7: SHAPES_STD, min7: SHAPES_MIN7, min7b5: SHAPES_STD,
+};
+
+const GROUPS = {
+  '1': { prefix:'1', rs:5, count:8 },
+  '2': { prefix:'2', rs:4, count:8 },
+  '3': { prefix:'3', rs:3, count:8 },
+  '4': { prefix:'4', rs:2, count:7 },
+  '5': { prefix:'5', rs:1, count:3 },
+  '6': { prefix:'6', rs:0, count:1 },
+};
+
+const ROOT_FRET = 5;
+let curChord = 'dom7', curGroup = '2', curShpIdx = 0;
+
+function getShapes() { return SHAPES_BY_CHORD[curChord]; }
+function ivDisp(iv)  { return iv.replace(/b/g, '♭'); }
+
+function computeDots(shpIdx, rs) {
+  const shape = getShapes()[shpIdx];
+  const chord = CHORD_TYPES[curChord];
+  return shape.dots.map(d => {
+    const targetRow = rs + d.sd;
+    if (targetRow < 0 || targetRow > 5) return null;
+    const sem  = semisBetween(rs, targetRow);
+    const fret = ROOT_FRET + chord.semis[d.sl] - sem;
+    if (fret < 0 || fret > 20) return null;
+    return { s: targetRow, f: fret, iv: chord.ivs[d.sl] };
+  }).filter(Boolean);
+}
+
+function buildLegend() {
+  const box = document.getElementById('legendBox');
+  box.innerHTML = '';
+  const labels = ['(Root)', '(Terz)', '(Quinte)', '(Septime)'];
+  CHORD_TYPES[curChord].ivs.forEach((iv, i) => {
+    const div = document.createElement('div'); div.className = 'legend-item';
+    const dot = document.createElement('div'); dot.className = 'legend-dot' + (i === 0 ? ' root' : '');
+    div.appendChild(dot);
+    const sp = document.createElement('span');
+    sp.textContent = ivDisp(iv) + ' ' + labels[i];
+    div.appendChild(sp);
+    box.appendChild(div);
+  });
+}
+
+function buildShpSel() {
+  const sel = document.getElementById('shpSel');
+  sel.innerHTML = '';
+  const grp    = GROUPS[curGroup];
+  const shapes = getShapes();
+  for (let i = 0; i < grp.count; i++) {
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = (grp.prefix + shapes[i].id).toUpperCase();
+    if (i === curShpIdx) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+function render() {
+  const grp      = GROUPS[curGroup];
+  const shape    = getShapes()[curShpIdx];
+  const rs       = grp.rs;
+  const label    = (grp.prefix + shape.id).toUpperCase();
+  const dots     = computeDots(curShpIdx, rs);
+  const labelMode= document.getElementById('labelSel').value;
+  const strNames = ['hoch-E','H','G','D','A','tief-E'];
+
+  document.getElementById('badge').textContent = label;
+  document.getElementById('akkord-desc').textContent =
+    `${CHORD_TYPES[curChord].name} · Root auf ${strNames[rs]}-Saite Bund ${ROOT_FRET} · Lage ${label}`;
+
+  const svg = document.getElementById('akkord-fb');
+  const W=700, H=260, L=44, R=W-12, T=28, B=H-24, SC=6, FC=15;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = '';
+  const fW = (R-L)/FC, sH = (B-T)/(SC-1);
+  const ap = e => svg.appendChild(e);
+
+  ap(mk('rect', {x:L-4, y:T-2, width:5, height:(SC-1)*sH+4, fill:'#555'}));
+
+  for (let f = 0; f <= FC; f++) {
+    ap(mk('line', {x1:L+f*fW, y1:T, x2:L+f*fW, y2:B,
+      stroke:'#888', 'stroke-width': f===0?2:0.7, opacity:0.5}));
+  }
+
+  const tk = [1.2, 1.1, 1.0, 1.6, 1.9, 2.2];
+  for (let s = 0; s < SC; s++) {
+    const y = T + s*sH;
+    ap(mk('line', {x1:L-4, y1:y, x2:R, y2:y,
+      stroke:'#444', 'stroke-width':tk[s], opacity:0.4}));
+  }
+
+  for (const f of [3,5,7,9,12,15]) {
+    const cx = L + (f-0.5)*fW;
+    if (f === 12) {
+      [1.5, 3.5].forEach(o => ap(mk('circle', {cx, cy:T+o*sH, r:5, fill:'#bbb'})));
+    } else {
+      ap(mk('circle', {cx, cy:T+2.5*sH, r:5, fill:'#bbb'}));
+    }
+    ap(tx(String(f), cx, B+14, 10, '#aaa', 'middle'));
+  }
+
+  for (let s = 0; s < SC; s++) {
+    const t = tx(OPEN_STR[s], L-13, T+s*sH+4, 11, '#666', 'middle');
+    t.setAttribute('font-weight', '500');
+    ap(t);
+  }
+
+  const af = dots.map(d => d.f).filter(f => f > 0);
+  if (af.length) {
+    const lo = Math.min(...af), hi = Math.max(...af);
+    const x1 = Math.max(L, L+(lo-1)*fW), x2 = Math.min(R, L+hi*fW);
+    if (x2 > x1) {
+      const bg = mk('rect', {x:x1, y:T-4, width:x2-x1,
+        height:(SC-1)*sH+8, fill:'#e8f0fb', rx:4, opacity:0.7});
+      svg.insertBefore(bg, svg.firstChild);
+    }
+  }
+
+  dots.forEach(d => {
+    const cx = d.f === 0 ? L-24 : L + (d.f-0.5)*fW;
+    const cy = T + d.s*sH;
+    const isRoot = d.iv === '1';
+    ap(mk('circle', {cx, cy, r:10, fill:'#B5D4F4',
+      stroke:'#185FA5', 'stroke-width': isRoot ? 2.8 : 1.5}));
+    let lbl;
+    if (labelMode === 'tone') {
+      const idx  = CHORD_TYPES[curChord].ivs.indexOf(d.iv);
+      const semi = (OPEN_SEMI[rs] + ROOT_FRET + CHORD_TYPES[curChord].semis[idx]) % 12;
+      lbl = NOTES_FLAT[semi];
+    } else {
+      lbl = ivDisp(d.iv);
+    }
+    const fs = lbl.length > 2 ? 7.5 : lbl.length > 1 ? 8.5 : 9.5;
+    const tl = tx(lbl, cx, cy+3.5, fs, '#185FA5', 'middle');
+    tl.setAttribute('font-weight', '500');
+    ap(tl);
+  });
+}
+
+function mk(tag, attrs) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+function tx(content, x, y, fs, fill, anchor) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  e.setAttribute('x', x); e.setAttribute('y', y);
+  e.setAttribute('font-size', fs); e.setAttribute('fill', fill);
+  e.setAttribute('text-anchor', anchor);
+  e.textContent = content;
+  return e;
+}
+
+function onChordChange() {
+  curChord = document.getElementById('chordSel').value;
+  buildLegend(); buildShpSel(); render();
+}
+function onGroupChange() {
+  curGroup = document.getElementById('groupSel').value;
+  const max = GROUPS[curGroup].count;
+  if (curShpIdx >= max) curShpIdx = max - 1;
+  buildShpSel(); render();
+}
+function onShpChange() {
+  curShpIdx = +document.getElementById('shpSel').value;
+  render();
+}
+function nav(dir) {
+  const max = GROUPS[curGroup].count;
+  curShpIdx = (curShpIdx + dir + max) % max;
+  buildShpSel(); render();
+}
+
+buildLegend();
+buildShpSel();
+render();
+</script>
+</body>
+</html>
