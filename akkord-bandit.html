@@ -301,7 +301,7 @@
 
     <!-- Griffbrett Widget -->
     <div class="griffbrett-widget-wrap">
-      <iframe src="akkord_griffbrett.html" height="460"></iframe>
+      <iframe id="griffbrett-iframe" src="akkord_griffbrett.html" height="460"></iframe>
     </div>
 
     <!-- Practice area: Ziffern | Pfeile -->
@@ -514,6 +514,7 @@ function waehleAkkord(typ, btn) {
   btn.classList.add('aktiv');
   if (letzteZiffern) zeigeAkkord(letzteZiffern);
   speichereState();
+  syncGriffbrett();
 }
 
 function zeigeAkkord(ziffern) {
@@ -530,7 +531,7 @@ function zeigeAkkord(ziffern) {
   });
 }
 
-document.getElementById('grundton').addEventListener('change', () => { if (letzteZiffern) zeigeAkkord(letzteZiffern); speichereState(); });
+document.getElementById('grundton').addEventListener('change', () => { if (letzteZiffern) zeigeAkkord(letzteZiffern); speichereState(); syncGriffbrett(); });
 
 // ── Räder ────────────────────────────────────────────────
 function erstelleRad(containerId, symbole) {
@@ -639,13 +640,27 @@ function markiereGeuebt() {
   setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
 }
 
+// ── Griffbrett Sync ──────────────────────────────────────
+function syncGriffbrett() {
+  const iframe = document.getElementById('griffbrett-iframe');
+  if (!iframe || !iframe.contentWindow) return;
+  iframe.contentWindow.postMessage({
+    chord:    aktuellerTyp,
+    grundton: document.getElementById('grundton').value,
+  }, '*');
+}
+
 // ── Init ─────────────────────────────────────────────────
 erstelleRad('raeder-a', ziffernSymbole);
 erstelleRad('raeder-b', pfeilSymbole);
 erstellePills();
 
+// Griffbrett-iframe: beim Laden initialen Zustand schicken
+document.getElementById('griffbrett-iframe').addEventListener('load', syncGriffbrett);
+
 window.addEventListener('pageshow', (e) => {
   if (!e.persisted) ladeState();
+  syncGriffbrett();
 });
 </script>
 </body>

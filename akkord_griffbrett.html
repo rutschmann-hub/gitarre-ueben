@@ -14,16 +14,16 @@
     }
 
     .akkord-widget {
-      max-width: 780px;
+      max-width: 860px;
       margin: 0 auto;
-      padding: 1.5rem 1rem;
+      padding: 1rem 1rem 0.6rem;
     }
 
     .control-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 0.8rem;
+      margin-bottom: 0.7rem;
       flex-wrap: wrap;
     }
     .control-row label {
@@ -72,7 +72,7 @@
     .legend {
       display: flex;
       gap: 16px;
-      margin-bottom: 0.9rem;
+      margin-bottom: 0.7rem;
       flex-wrap: wrap;
     }
     .legend-item {
@@ -92,15 +92,11 @@
     }
     .legend-dot.root { border-width: 2.8px; }
 
-    #akkord-fb {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
+    #akkord-fb { width: 100%; height: auto; display: block; }
     .fb-scroll { overflow-x: auto; }
 
     .akkord-desc {
-      margin-top: 0.55rem;
+      margin-top: 0.4rem;
       font-size: 12px;
       color: #888;
       text-align: center;
@@ -157,7 +153,7 @@
   <div class="legend" id="legendBox"></div>
 
   <div class="fb-scroll">
-    <svg id="akkord-fb" viewBox="0 0 700 260" style="min-width:580px"></svg>
+    <svg id="akkord-fb" viewBox="0 0 760 240" style="min-width:560px"></svg>
   </div>
 
   <p class="akkord-desc" id="akkord-desc"></p>
@@ -165,21 +161,26 @@
 </div>
 
 <script>
-const OPEN_STR   = ['E','H','G','D','A','E'];
+// ── Konstanten ─────────────────────────────────────────────────
+const FC         = 18;   // Anzahl Bünde
+const OPEN_STR   = ['E','H','G','D','A','E'];  // SVG row 0=hoch-E … 5=tief-E
 const NOTES_FLAT = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
-const OPEN_SEMI  = [4, 11, 7, 2, 9, 4];
+const OPEN_SEMI  = [4, 11, 7, 2, 9, 4];  // Halbtonabstand der leeren Saite von C
+const NOTES_SEMI = {C:0,Db:1,D:2,Eb:3,E:4,F:5,Gb:6,G:7,Ab:8,A:9,Bb:10,B:11};
 
+// Halbtonabstand zwischen zwei SVG-Zeilen (höher/tiefer)
 function semisBetween(rootRow, targetRow) {
-  const steps = [5, 4, 5, 5, 5];
+  const steps = [5, 4, 5, 5, 5]; // row0→1=5, row1→2=4, row2→3=5, row3→4=5, row4→5=5
   let s = 0;
   if (targetRow < rootRow) {
     for (let r = targetRow; r < rootRow; r++) s += steps[r];
-  } else if (targetRow > rootRow) {
+  } else {
     for (let r = rootRow; r < targetRow; r++) s -= steps[r];
   }
   return s;
 }
 
+// ── Akkordtypen ────────────────────────────────────────────────
 const CHORD_TYPES = {
   dom7:   { name: 'Dom7',     ivs: ['1','3','5','b7'],   semis: [0,4,7,10] },
   maj7:   { name: 'Maj7',     ivs: ['1','3','5','7'],    semis: [0,4,7,11] },
@@ -187,6 +188,8 @@ const CHORD_TYPES = {
   min7b5: { name: 'Moll7♭5', ivs: ['1','b3','b5','b7'], semis: [0,3,6,10] },
 };
 
+// ── Shape-Definitionen ─────────────────────────────────────────
+// sd = Saitenoffset vom Root (negativ = dünner/höher), sl = Schlitz-Index im Akkord
 const SHAPES_STD = [
   {id:'a', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:0,sl:2},{sd:0,sl:3}]},
   {id:'b', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:0,sl:2},{sd:-1,sl:3}]},
@@ -197,7 +200,6 @@ const SHAPES_STD = [
   {id:'g', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2},{sd:-2,sl:3}]},
   {id:'h', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2},{sd:-3,sl:3}]},
 ];
-
 const SHAPES_MIN7 = [
   {id:'a', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:0,sl:2},{sd:0,sl:3}]},
   {id:'b', dots:[{sd:0,sl:0},{sd:0,sl:1},{sd:0,sl:2},{sd:-1,sl:3}]},
@@ -208,41 +210,76 @@ const SHAPES_MIN7 = [
   {id:'g', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2},{sd:-2,sl:3}]},
   {id:'h', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2},{sd:-3,sl:3}]},
 ];
-
 const SHAPES_BY_CHORD = {
   dom7: SHAPES_STD, maj7: SHAPES_STD, min7: SHAPES_MIN7, min7b5: SHAPES_STD,
 };
 
+// Alle Gruppen mit count=8; isShapeValid filtert physisch unmögliche raus
 const GROUPS = {
   '1': { prefix:'1', rs:5, count:8 },
   '2': { prefix:'2', rs:4, count:8 },
   '3': { prefix:'3', rs:3, count:8 },
-  '4': { prefix:'4', rs:2, count:7 },
-  '5': { prefix:'5', rs:1, count:3 },
-  '6': { prefix:'6', rs:0, count:1 },
+  '4': { prefix:'4', rs:2, count:8 },
+  '5': { prefix:'5', rs:1, count:8 },
+  '6': { prefix:'6', rs:0, count:8 },
 };
 
-const ROOT_FRET = 5;
-let curChord = 'dom7', curGroup = '2', curShpIdx = 0;
+// ── Zustand ────────────────────────────────────────────────────
+let curChord   = 'dom7';
+let curGroup   = '2';
+let curShpIdx  = 0;
+let curGrundton = 'C';
 
 function getShapes() { return SHAPES_BY_CHORD[curChord]; }
 function ivDisp(iv)  { return iv.replace(/b/g, '♭'); }
 
+// Dynamischer Rootbund basierend auf Grundton + Saite
+function calcRootFret(rs) {
+  const diff = (NOTES_SEMI[curGrundton] - OPEN_SEMI[rs] + 12) % 12;
+  return diff === 0 ? 12 : diff;
+}
+
+// Prüft ob alle 4 Punkte des Shapes auf dem Griffbrett liegen (Bund 1–FC)
+function isShapeValid(shpIdx, rs) {
+  const rootFret = calcRootFret(rs);
+  const shape    = getShapes()[shpIdx];
+  const chord    = CHORD_TYPES[curChord];
+  for (const d of shape.dots) {
+    const targetRow = rs + d.sd;
+    if (targetRow < 0 || targetRow > 5) return false;
+    const fret = rootFret + chord.semis[d.sl] - semisBetween(rs, targetRow);
+    if (fret < 1 || fret > FC) return false;
+  }
+  return true;
+}
+
+// Gibt alle gültigen Shape-Indizes für aktuelle Gruppe zurück
+function validShapeIndices() {
+  const grp = GROUPS[curGroup];
+  const res = [];
+  for (let i = 0; i < grp.count; i++) {
+    if (isShapeValid(i, grp.rs)) res.push(i);
+  }
+  return res;
+}
+
+// Berechnet Punkte (nur gültige)
 function computeDots(shpIdx, rs) {
-  const shape = getShapes()[shpIdx];
-  const chord = CHORD_TYPES[curChord];
+  const rootFret = calcRootFret(rs);
+  const shape    = getShapes()[shpIdx];
+  const chord    = CHORD_TYPES[curChord];
   return shape.dots.map(d => {
     const targetRow = rs + d.sd;
     if (targetRow < 0 || targetRow > 5) return null;
-    const sem  = semisBetween(rs, targetRow);
-    const fret = ROOT_FRET + chord.semis[d.sl] - sem;
-    if (fret < 0 || fret > 20) return null;
+    const fret = rootFret + chord.semis[d.sl] - semisBetween(rs, targetRow);
+    if (fret < 1 || fret > FC) return null;
     return { s: targetRow, f: fret, iv: chord.ivs[d.sl] };
   }).filter(Boolean);
 }
 
+// ── UI aufbauen ────────────────────────────────────────────────
 function buildLegend() {
-  const box = document.getElementById('legendBox');
+  const box    = document.getElementById('legendBox');
   box.innerHTML = '';
   const labels = ['(Root)', '(Terz)', '(Quinte)', '(Septime)'];
   CHORD_TYPES[curChord].ivs.forEach((iv, i) => {
@@ -257,91 +294,119 @@ function buildLegend() {
 }
 
 function buildShpSel() {
-  const sel = document.getElementById('shpSel');
+  const sel    = document.getElementById('shpSel');
   sel.innerHTML = '';
   const grp    = GROUPS[curGroup];
   const shapes = getShapes();
-  for (let i = 0; i < grp.count; i++) {
+  const valid  = validShapeIndices();
+
+  // Wenn aktueller Shape nicht mehr gültig: ersten gültigen nehmen
+  if (!valid.includes(curShpIdx)) {
+    curShpIdx = valid.length > 0 ? valid[0] : 0;
+  }
+
+  valid.forEach(i => {
     const o = document.createElement('option');
     o.value = i;
     o.textContent = (grp.prefix + shapes[i].id).toUpperCase();
     if (i === curShpIdx) o.selected = true;
     sel.appendChild(o);
-  }
+  });
 }
 
+// ── SVG Rendering ──────────────────────────────────────────────
 function render() {
-  const grp      = GROUPS[curGroup];
-  const shape    = getShapes()[curShpIdx];
-  const rs       = grp.rs;
-  const label    = (grp.prefix + shape.id).toUpperCase();
-  const dots     = computeDots(curShpIdx, rs);
-  const labelMode= document.getElementById('labelSel').value;
+  const grp    = GROUPS[curGroup];
+  const rs     = grp.rs;
+  const shapes = getShapes();
+  const valid  = validShapeIndices();
+
+  // Aktuellen Shape sicherstellen
+  if (!valid.includes(curShpIdx) && valid.length > 0) curShpIdx = valid[0];
+
+  const hasShape = valid.includes(curShpIdx);
+  const shape    = hasShape ? shapes[curShpIdx] : null;
+  const label    = shape ? (grp.prefix + shape.id).toUpperCase() : '–';
+  const rootFret = calcRootFret(rs);
   const strNames = ['hoch-E','H','G','D','A','tief-E'];
+  const labelMode= document.getElementById('labelSel').value;
 
   document.getElementById('badge').textContent = label;
-  document.getElementById('akkord-desc').textContent =
-    `${CHORD_TYPES[curChord].name} · Root auf ${strNames[rs]}-Saite Bund ${ROOT_FRET} · Lage ${label}`;
+  document.getElementById('akkord-desc').textContent = valid.length === 0
+    ? `Kein Griffbild für ${curGrundton} auf ${strNames[rs]}-Saite (Bundlage außerhalb 1–${FC})`
+    : `${CHORD_TYPES[curChord].name} · ${curGrundton} · Root: ${strNames[rs]}-Saite Bund ${rootFret} · Lage ${label}`;
 
+  // SVG-Dimensionen: FC=18, L=26 (wenig links-Abstand)
   const svg = document.getElementById('akkord-fb');
-  const W=700, H=260, L=44, R=W-12, T=28, B=H-24, SC=6, FC=15;
+  const W=760, H=240, L=26, R=W-8, T=24, B=H-22, SC=6;
+  const fW = (R-L)/FC;
+  const sH = (B-T)/(SC-1);
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = '';
-  const fW = (R-L)/FC, sH = (B-T)/(SC-1);
   const ap = e => svg.appendChild(e);
 
+  // Sattel
   ap(mk('rect', {x:L-4, y:T-2, width:5, height:(SC-1)*sH+4, fill:'#555'}));
 
+  // Bundlinien
   for (let f = 0; f <= FC; f++) {
     ap(mk('line', {x1:L+f*fW, y1:T, x2:L+f*fW, y2:B,
-      stroke:'#888', 'stroke-width': f===0?2:0.7, opacity:0.5}));
+      stroke:'#888', 'stroke-width': f===0 ? 2 : 0.7, opacity:0.5}));
   }
 
+  // Saiten
   const tk = [1.2, 1.1, 1.0, 1.6, 1.9, 2.2];
   for (let s = 0; s < SC; s++) {
-    const y = T + s*sH;
-    ap(mk('line', {x1:L-4, y1:y, x2:R, y2:y,
+    ap(mk('line', {x1:L-4, y1:T+s*sH, x2:R, y2:T+s*sH,
       stroke:'#444', 'stroke-width':tk[s], opacity:0.4}));
   }
 
-  for (const f of [3,5,7,9,12,15]) {
+  // Bundmarkierungen (Inlays)
+  for (const f of [3,5,7,9,12,15,17]) {
     const cx = L + (f-0.5)*fW;
     if (f === 12) {
-      [1.5, 3.5].forEach(o => ap(mk('circle', {cx, cy:T+o*sH, r:5, fill:'#bbb'})));
+      [1.5, 3.5].forEach(o => ap(mk('circle', {cx, cy:T+o*sH, r:4.5, fill:'#ccc'})));
     } else {
-      ap(mk('circle', {cx, cy:T+2.5*sH, r:5, fill:'#bbb'}));
+      ap(mk('circle', {cx, cy:T+2.5*sH, r:4.5, fill:'#ccc'}));
     }
-    ap(tx(String(f), cx, B+14, 10, '#aaa', 'middle'));
+    ap(tx(String(f), cx, B+13, 9, '#aaa', 'middle'));
   }
 
+  // Saitenbeschriftungen (links vom Sattel)
   for (let s = 0; s < SC; s++) {
-    const t = tx(OPEN_STR[s], L-13, T+s*sH+4, 11, '#666', 'middle');
-    t.setAttribute('font-weight', '500');
+    const t = tx(OPEN_STR[s], L-11, T+s*sH+4, 10, '#666', 'middle');
+    t.setAttribute('font-weight', '600');
     ap(t);
   }
 
-  const af = dots.map(d => d.f).filter(f => f > 0);
-  if (af.length) {
-    const lo = Math.min(...af), hi = Math.max(...af);
-    const x1 = Math.max(L, L+(lo-1)*fW), x2 = Math.min(R, L+hi*fW);
-    if (x2 > x1) {
-      const bg = mk('rect', {x:x1, y:T-4, width:x2-x1,
-        height:(SC-1)*sH+8, fill:'#e8f0fb', rx:4, opacity:0.7});
-      svg.insertBefore(bg, svg.firstChild);
-    }
+  if (!hasShape) return;
+
+  // Punkte berechnen
+  const dots = computeDots(curShpIdx, rs);
+  if (!dots.length) return;
+
+  // Highlight-Zone hinter den Punkten
+  const frets = dots.map(d => d.f);
+  const lo = Math.min(...frets), hi = Math.max(...frets);
+  const hx1 = Math.max(L, L+(lo-1)*fW);
+  const hx2 = Math.min(R, L+hi*fW);
+  if (hx2 > hx1) {
+    const bg = mk('rect', {x:hx1, y:T-4, width:hx2-hx1,
+      height:(SC-1)*sH+8, fill:'#e8f0fb', rx:4, opacity:0.7});
+    svg.insertBefore(bg, svg.firstChild);
   }
 
+  // Punkte zeichnen
   dots.forEach(d => {
-    const cx = d.f === 0 ? L-24 : L + (d.f-0.5)*fW;
+    const cx = L + (d.f-0.5)*fW;
     const cy = T + d.s*sH;
     const isRoot = d.iv === '1';
     ap(mk('circle', {cx, cy, r:10, fill:'#B5D4F4',
       stroke:'#185FA5', 'stroke-width': isRoot ? 2.8 : 1.5}));
     let lbl;
     if (labelMode === 'tone') {
-      const idx  = CHORD_TYPES[curChord].ivs.indexOf(d.iv);
-      const semi = (OPEN_SEMI[rs] + ROOT_FRET + CHORD_TYPES[curChord].semis[idx]) % 12;
-      lbl = NOTES_FLAT[semi];
+      // Note direkt aus Saite + Bund berechnen (nicht aus Intervalloffset)
+      lbl = NOTES_FLAT[(OPEN_SEMI[d.s] + d.f) % 12];
     } else {
       lbl = ivDisp(d.iv);
     }
@@ -352,6 +417,7 @@ function render() {
   });
 }
 
+// ── SVG-Helfer ─────────────────────────────────────────────────
 function mk(tag, attrs) {
   const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
@@ -366,14 +432,15 @@ function tx(content, x, y, fs, fill, anchor) {
   return e;
 }
 
+// ── Event-Handler (manuelle Bedienung) ────────────────────────
 function onChordChange() {
   curChord = document.getElementById('chordSel').value;
+  curShpIdx = 0;
   buildLegend(); buildShpSel(); render();
 }
 function onGroupChange() {
   curGroup = document.getElementById('groupSel').value;
-  const max = GROUPS[curGroup].count;
-  if (curShpIdx >= max) curShpIdx = max - 1;
+  curShpIdx = 0;
   buildShpSel(); render();
 }
 function onShpChange() {
@@ -381,11 +448,36 @@ function onShpChange() {
   render();
 }
 function nav(dir) {
-  const max = GROUPS[curGroup].count;
-  curShpIdx = (curShpIdx + dir + max) % max;
+  const valid = validShapeIndices();
+  if (!valid.length) return;
+  const pos = valid.indexOf(curShpIdx);
+  const next = (pos + dir + valid.length) % valid.length;
+  curShpIdx = valid[next];
   buildShpSel(); render();
 }
 
+// ── Sync vom Elternfenster (akkord-bandit.html) ───────────────
+// Elternseite schickt { chord: 'dom7'|'maj7'|'moll7'|'moll7b5', grundton: 'C'…'B' }
+const CHORD_MAP = { dom7:'dom7', maj7:'maj7', moll7:'min7', moll7b5:'min7b5' };
+window.addEventListener('message', (e) => {
+  const data = e.data || {};
+  let changed = false;
+  if (data.chord && CHORD_MAP[data.chord] && CHORD_MAP[data.chord] !== curChord) {
+    curChord = CHORD_MAP[data.chord];
+    document.getElementById('chordSel').value = curChord;
+    changed = true;
+  }
+  if (data.grundton && NOTES_SEMI[data.grundton] !== undefined && data.grundton !== curGrundton) {
+    curGrundton = data.grundton;
+    changed = true;
+  }
+  if (changed) {
+    curShpIdx = 0;
+    buildLegend(); buildShpSel(); render();
+  }
+});
+
+// ── Init ───────────────────────────────────────────────────────
 buildLegend();
 buildShpSel();
 render();
