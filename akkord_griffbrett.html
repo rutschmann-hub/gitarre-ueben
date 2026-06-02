@@ -14,9 +14,8 @@
     }
 
     .akkord-widget {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 1rem 1rem 0.6rem;
+      width: 100%;
+      padding: 0.75rem 0.6rem 0.4rem;
     }
 
     .control-row {
@@ -338,7 +337,7 @@ function render() {
 
   // SVG-Dimensionen: FC=18, L=26 (wenig links-Abstand)
   const svg = document.getElementById('akkord-fb');
-  const W=760, H=240, L=26, R=W-8, T=24, B=H-22, SC=6;
+  const W=760, H=240, L=16, R=W-4, T=24, B=H-22, SC=6;
   const fW = (R-L)/FC;
   const sH = (B-T)/(SC-1);
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
@@ -374,7 +373,7 @@ function render() {
 
   // Saitenbeschriftungen (links vom Sattel)
   for (let s = 0; s < SC; s++) {
-    const t = tx(OPEN_STR[s], L-11, T+s*sH+4, 10, '#666', 'middle');
+    const t = tx(OPEN_STR[s], L-8,  T+s*sH+4, 10, '#666', 'middle');
     t.setAttribute('font-weight', '600');
     ap(t);
   }
