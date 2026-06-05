@@ -101,6 +101,25 @@
       text-align: center;
     }
 
+    .inv-btn {
+      padding: 4px 11px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+      color: #555;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: monospace;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .inv-btn:hover { border-color: #888; }
+    .inv-btn.inv-aktiv-0 { background: #185FA5; color: #fff; border-color: #185FA5; }
+    .inv-btn.inv-aktiv-1 { background: #C76B00; color: #fff; border-color: #C76B00; }
+    .legend-dot.inv { border-color: #C76B00; background: #FDE8C0; }
+
     @media (prefers-color-scheme: dark) {
       body { background: #1e1a17; color: #e8e8e8; }
       select { background: #2a2520; color: #e8e8e8; border-color: #444; }
@@ -125,6 +144,11 @@
       <option value="min7">Moll 7 (1 ♭3 5 ♭7)</option>
       <option value="min7b5">Moll 7♭5 (1 ♭3 ♭5 ♭7)</option>
     </select>
+    <div id="inv-row" style="display:flex;gap:4px;align-items:center;margin-left:10px">
+      <label style="font-size:13px;font-weight:500;color:#555;white-space:nowrap">Umkehrung:</label>
+      <button id="inv-btn-0" class="inv-btn inv-aktiv-0" onclick="setInversion(0)">1 3 5 7</button>
+      <button id="inv-btn-1" class="inv-btn" onclick="setInversion(1)">3 5 7 1</button>
+    </div>
   </div>
 
   <div class="control-row">
@@ -228,25 +252,34 @@ let curChord   = 'dom7';
 let curGroup   = '2';
 let curShpIdx  = 0;
 let curGrundton = 'C';
+let curInversion = 0; // 0 = Grundstellung (1 3 5 7), 1 = Erste Umkehrung (3 5 7 1)
 
 function getShapes() { return SHAPES_BY_CHORD[curChord]; }
 function ivDisp(iv)  { return iv.replace(/b/g, '♭'); }
 
-// Dynamischer Rootbund basierend auf Grundton + Saite
-function calcRootFret(rs) {
-  const diff = (NOTES_SEMI[curGrundton] - OPEN_SEMI[rs] + 12) % 12;
+// Intervall eines Slots relativ zum Bass-Slot der Umkehrung (negativ → +12)
+function invInterval(sl, semis) {
+  const diff = semis[sl] - semis[curInversion];
+  return diff < 0 ? diff + 12 : diff;
+}
+
+// Bund des Bass-Tons (abhängig von Umkehrung) auf Saite rs
+function calcBassFret(rs) {
+  const chord = CHORD_TYPES[curChord];
+  const bassNoteSemi = (NOTES_SEMI[curGrundton] + chord.semis[curInversion]) % 12;
+  const diff = (bassNoteSemi - OPEN_SEMI[rs] + 12) % 12;
   return diff === 0 ? 12 : diff;
 }
 
 // Prüft ob alle 4 Punkte des Shapes auf dem Griffbrett liegen (Bund 1–FC)
 function isShapeValid(shpIdx, rs) {
-  const rootFret = calcRootFret(rs);
+  const bassFret = calcBassFret(rs);
   const shape    = getShapes()[shpIdx];
   const chord    = CHORD_TYPES[curChord];
   for (const d of shape.dots) {
     const targetRow = rs + d.sd;
     if (targetRow < 0 || targetRow > 5) return false;
-    const fret = rootFret + chord.semis[d.sl] - semisBetween(rs, targetRow);
+    const fret = bassFret + invInterval(d.sl, chord.semis) - semisBetween(rs, targetRow);
     if (fret < 1 || fret > FC) return false;
   }
   return true;
@@ -264,13 +297,13 @@ function validShapeIndices() {
 
 // Berechnet Punkte (nur gültige)
 function computeDots(shpIdx, rs) {
-  const rootFret = calcRootFret(rs);
+  const bassFret = calcBassFret(rs);
   const shape    = getShapes()[shpIdx];
   const chord    = CHORD_TYPES[curChord];
   return shape.dots.map(d => {
     const targetRow = rs + d.sd;
     if (targetRow < 0 || targetRow > 5) return null;
-    const fret = rootFret + chord.semis[d.sl] - semisBetween(rs, targetRow);
+    const fret = bassFret + invInterval(d.sl, chord.semis) - semisBetween(rs, targetRow);
     if (fret < 1 || fret > FC) return null;
     return { s: targetRow, f: fret, iv: chord.ivs[d.sl] };
   }).filter(Boolean);
@@ -283,7 +316,7 @@ function buildLegend() {
   const labels = ['(Root)', '(Terz)', '(Quinte)', '(Septime)'];
   CHORD_TYPES[curChord].ivs.forEach((iv, i) => {
     const div = document.createElement('div'); div.className = 'legend-item';
-    const dot = document.createElement('div'); dot.className = 'legend-dot' + (i === 0 ? ' root' : '');
+    const dot = document.createElement('div'); dot.className = 'legend-dot' + (i === curInversion ? (curInversion === 0 ? ' root' : ' inv') : '');
     div.appendChild(dot);
     const sp = document.createElement('span');
     sp.textContent = ivDisp(iv) + ' ' + labels[i];
@@ -326,14 +359,19 @@ function render() {
   const hasShape = valid.includes(curShpIdx);
   const shape    = hasShape ? shapes[curShpIdx] : null;
   const label    = shape ? (grp.prefix + shape.id).toUpperCase() : '–';
-  const rootFret = calcRootFret(rs);
+  const bassFret = calcBassFret(rs);
   const strNames = ['hoch-E','H','G','D','A','tief-E'];
   const labelMode= document.getElementById('labelSel').value;
+  const invLabel = curInversion === 0 ? 'Grundstellung' : '1. Umkehrung';
+  const dotFill   = curInversion === 0 ? '#B5D4F4' : '#FDE8C0';
+  const dotStroke = curInversion === 0 ? '#185FA5' : '#C76B00';
+  const hlFill    = curInversion === 0 ? '#e8f0fb' : '#FEF3E2';
+  const txtColor  = curInversion === 0 ? '#185FA5' : '#7A3A00';
 
   document.getElementById('badge').textContent = label;
   document.getElementById('akkord-desc').textContent = valid.length === 0
     ? `Kein Griffbild für ${curGrundton} auf ${strNames[rs]}-Saite (Bundlage außerhalb 1–${FC})`
-    : `${CHORD_TYPES[curChord].name} · ${curGrundton} · Root: ${strNames[rs]}-Saite Bund ${rootFret} · Lage ${label}`;
+    : `${CHORD_TYPES[curChord].name} · ${curGrundton} · ${invLabel} · ${strNames[rs]}-Saite Bund ${bassFret} · Lage ${label}`;
 
   // SVG-Dimensionen: FC=18, L=26 (wenig links-Abstand)
   const svg = document.getElementById('akkord-fb');
@@ -391,7 +429,7 @@ function render() {
   const hx2 = Math.min(R, L+hi*fW);
   if (hx2 > hx1) {
     const bg = mk('rect', {x:hx1, y:T-4, width:hx2-hx1,
-      height:(SC-1)*sH+8, fill:'#e8f0fb', rx:4, opacity:0.7});
+      height:(SC-1)*sH+8, fill:hlFill, rx:4, opacity:0.7});
     svg.insertBefore(bg, svg.firstChild);
   }
 
@@ -399,18 +437,17 @@ function render() {
   dots.forEach(d => {
     const cx = L + (d.f-0.5)*fW;
     const cy = T + d.s*sH;
-    const isRoot = d.iv === '1';
-    ap(mk('circle', {cx, cy, r:10, fill:'#B5D4F4',
-      stroke:'#185FA5', 'stroke-width': isRoot ? 2.8 : 1.5}));
+    const isBass = d.iv === CHORD_TYPES[curChord].ivs[curInversion];
+    ap(mk('circle', {cx, cy, r:10, fill:dotFill,
+      stroke:dotStroke, 'stroke-width': isBass ? 2.8 : 1.5}));
     let lbl;
     if (labelMode === 'tone') {
-      // Note direkt aus Saite + Bund berechnen (nicht aus Intervalloffset)
       lbl = NOTES_FLAT[(OPEN_SEMI[d.s] + d.f) % 12];
     } else {
       lbl = ivDisp(d.iv);
     }
     const fs = lbl.length > 2 ? 7.5 : lbl.length > 1 ? 8.5 : 9.5;
-    const tl = tx(lbl, cx, cy+3.5, fs, '#185FA5', 'middle');
+    const tl = tx(lbl, cx, cy+3.5, fs, txtColor, 'middle');
     tl.setAttribute('font-weight', '500');
     ap(tl);
   });
@@ -432,9 +469,30 @@ function tx(content, x, y, fs, fill, anchor) {
 }
 
 // ── Event-Handler (manuelle Bedienung) ────────────────────────
+function setInversion(n) {
+  curInversion = n;
+  document.querySelectorAll('.inv-btn').forEach((b, i) => {
+    b.classList.remove('inv-aktiv-0', 'inv-aktiv-1');
+    if (i === n) b.classList.add('inv-aktiv-' + n);
+  });
+  curShpIdx = 0;
+  buildShpSel(); render();
+}
+
 function onChordChange() {
   curChord = document.getElementById('chordSel').value;
   curShpIdx = 0;
+  const invRow = document.getElementById('inv-row');
+  if (curChord !== 'dom7') {
+    curInversion = 0;
+    document.querySelectorAll('.inv-btn').forEach((b, i) => {
+      b.classList.remove('inv-aktiv-0', 'inv-aktiv-1');
+      if (i === 0) b.classList.add('inv-aktiv-0');
+    });
+    if (invRow) invRow.style.display = 'none';
+  } else {
+    if (invRow) invRow.style.display = 'flex';
+  }
   buildLegend(); buildShpSel(); render();
 }
 function onGroupChange() {
