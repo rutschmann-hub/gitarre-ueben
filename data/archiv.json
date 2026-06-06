@@ -193,6 +193,29 @@
         "total": 0,
         "start": "06.06.2026"
       }
+    },
+    {
+      "datum": "06.06.2026",
+      "dom7": {
+        "unique": 3,
+        "total": 3,
+        "start": "06.06.2026"
+      },
+      "maj7": {
+        "unique": 0,
+        "total": 0,
+        "start": "06.06.2026"
+      },
+      "moll7": {
+        "unique": 0,
+        "total": 0,
+        "start": "06.06.2026"
+      },
+      "moll7b5": {
+        "unique": 0,
+        "total": 0,
+        "start": "06.06.2026"
+      }
     }
   ]
 }
