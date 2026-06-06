@@ -15,14 +15,14 @@
 
     .akkord-widget {
       width: 100%;
-      padding: 0.75rem 0.6rem 0.4rem;
+      padding: 0.5rem 0.6rem 0.25rem;
     }
 
     .control-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 0.7rem;
+      margin-bottom: 0.45rem;
       flex-wrap: wrap;
     }
     .control-row label {
@@ -71,7 +71,7 @@
     .legend {
       display: flex;
       gap: 16px;
-      margin-bottom: 0.7rem;
+      margin-bottom: 0.45rem;
       flex-wrap: wrap;
     }
     .legend-item {
@@ -95,7 +95,7 @@
     .fb-scroll { overflow-x: auto; }
 
     .akkord-desc {
-      margin-top: 0.4rem;
+      margin-top: 0.2rem;
       font-size: 12px;
       color: #888;
       text-align: center;
@@ -116,6 +116,10 @@
       white-space: nowrap;
     }
     .inv-btn:hover { border-color: #888; }
+    #inv-btn-0 { border-color:#185FA5; color:#185FA5; background:rgba(24,95,165,.07); }
+    #inv-btn-1 { border-color:#C76B00; color:#C76B00; background:rgba(199,107,0,.07); }
+    #inv-btn-2 { border-color:#1A7A42; color:#1A7A42; background:rgba(26,122,66,.07); }
+    #inv-btn-3 { border-color:#7B2FBE; color:#7B2FBE; background:rgba(123,47,190,.07); }
     .inv-btn.inv-aktiv-0 { background: #185FA5; color: #fff; border-color: #185FA5; }
     .inv-btn.inv-aktiv-1 { background: #C76B00; color: #fff; border-color: #C76B00; }
     .inv-btn.inv-aktiv-2 { background: #1A7A42; color: #fff; border-color: #1A7A42; }
@@ -433,7 +437,7 @@ function render() {
 
   // SVG-Dimensionen: FC=18, L=26 (wenig links-Abstand)
   const svg = document.getElementById('akkord-fb');
-  const W=760, H=240, L=16, R=W-4, T=24, B=H-22, SC=6;
+  const W=760, H=162, L=16, R=W-4, T=16, B=H-14, SC=6;
   const fW = (R-L)/FC;
   const sH = (B-T)/(SC-1);
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
@@ -460,16 +464,16 @@ function render() {
   for (const f of [3,5,7,9,12,15,17]) {
     const cx = L + (f-0.5)*fW;
     if (f === 12) {
-      [1.5, 3.5].forEach(o => ap(mk('circle', {cx, cy:T+o*sH, r:4.5, fill:'#ccc'})));
+      [1.5, 3.5].forEach(o => ap(mk('circle', {cx, cy:T+o*sH, r:3.5, fill:'#ccc'})));
     } else {
-      ap(mk('circle', {cx, cy:T+2.5*sH, r:4.5, fill:'#ccc'}));
+      ap(mk('circle', {cx, cy:T+2.5*sH, r:3.5, fill:'#ccc'}));
     }
-    ap(tx(String(f), cx, B+13, 9, '#aaa', 'middle'));
+    ap(tx(String(f), cx, B+11, 8, '#aaa', 'middle'));
   }
 
   // Saitenbeschriftungen (links vom Sattel)
   for (let s = 0; s < SC; s++) {
-    const t = tx(OPEN_STR[s], L-8,  T+s*sH+4, 10, '#666', 'middle');
+    const t = tx(OPEN_STR[s], L-8,  T+s*sH+3, 9,  '#666', 'middle');
     t.setAttribute('font-weight', '600');
     ap(t);
   }
@@ -496,7 +500,7 @@ function render() {
     const cx = L + (d.f-0.5)*fW;
     const cy = T + d.s*sH;
     const isRoot = d.iv === '1'; // Grundton immer hervorheben, unabhängig von der Umkehrung
-    ap(mk('circle', {cx, cy, r:10, fill:dotFill,
+    ap(mk('circle', {cx, cy, r:8,  fill:dotFill,
       stroke:dotStroke, 'stroke-width': isRoot ? 2.8 : 1.5}));
     let lbl;
     if (labelMode === 'tone') {

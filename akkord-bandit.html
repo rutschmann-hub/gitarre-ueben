@@ -14,7 +14,7 @@
       overflow-x: auto;
       display: flex;
       justify-content: center;
-      padding: 1.5rem 1.5rem 2.5rem;
+      padding: 0.75rem 1rem 1rem;
     }
 
     .bandit-wrap {
@@ -22,14 +22,14 @@
       max-width: 1080px;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 0.6rem;
     }
 
     /* ─── Settings bar ─────────────────────────────────── */
     .settings-bar {
       display: flex;
       align-items: center;
-      gap: 1.25rem;
+      gap: 0.75rem;
       flex-wrap: wrap;
       padding: 0.9rem 1.25rem;
       background: var(--surface);
@@ -92,10 +92,10 @@
     /* ─── Akkord name ──────────────────────────────────── */
     .akkord-name-display {
       font-family: 'Fraunces', serif;
-      font-size: 2.1rem;
+      font-size: 1.6rem;
       font-weight: 600;
       color: var(--accent);
-      min-height: 2.6rem;
+      min-height: 1.6rem;
       letter-spacing: -0.01em;
       text-align: center;
     }
@@ -103,7 +103,7 @@
     .raeder-wrap {
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 0.75rem;
     }
 
     /* ─── Räder ────────────────────────────────────────── */
@@ -122,7 +122,7 @@
 
     .rad-fenster {
       width: 88px;
-      height: 108px;
+      height: 84px;
       border: 1.5px solid var(--border2);
       border-radius: 8px;
       overflow: hidden;
@@ -136,11 +136,11 @@
       flex-direction: column;
     }
     .rad-zelle {
-      height: 108px;
+      height: 84px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
+      font-size: 22px;
       color: var(--text);
     }
     .highlight {
@@ -164,11 +164,11 @@
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 6px;
+      padding: 5px 6px;
       transition: all 0.2s;
     }
     .ton-pill.leer { background: transparent; border-color: transparent; }
-    .ton-name { font-size: 20px; font-weight: 500; color: var(--accent); }
+    .ton-name { font-size: 16px; font-weight: 500; color: var(--accent); }
     .ton-funktion { font-size: 11px; color: var(--text3); }
 
     .trennlinie {
@@ -242,8 +242,8 @@
 
     /* ─── Griffbrett Widget ──────────────────────────────── */
     .griffbrett-widget-wrap {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
+      border: 1.5px solid var(--border2);
+      border-radius: 8px;
       overflow: hidden;
     }
     .griffbrett-widget-wrap iframe {
@@ -297,13 +297,13 @@
       </div>
     </div>
 
-    <!-- Akkord name -->
-    <div class="akkord-name-display" id="akkord-name">–</div>
-
     <!-- Griffbrett Widget -->
     <div class="griffbrett-widget-wrap">
-      <iframe id="griffbrett-iframe" src="akkord_griffbrett.html" height="460"></iframe>
+      <iframe id="griffbrett-iframe" src="akkord_griffbrett.html" height="360"></iframe>
     </div>
+
+    <!-- Akkord name -->
+    <div class="akkord-name-display" id="akkord-name">–</div>
 
     <!-- Practice area: Ziffern | Pfeile -->
     <div class="raeder-wrap">
@@ -561,7 +561,7 @@ function erstellePills() {
 }
 
 function animiereStrip(containerId, symbole, ziel, cb) {
-  const h = 108;
+  const h = 84;
   for (let i = 0; i < 4; i++) {
     const strip = document.getElementById(containerId + '-strip-' + i);
     strip.style.transition = 'none';
