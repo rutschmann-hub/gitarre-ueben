@@ -329,8 +329,9 @@
         <div class="rad-gruppe">
           <div class="rad-gruppe-titel">Pfeile</div>
           <div class="raeder-reihe" id="raeder-b"></div>
-          <div style="margin-top:auto">
+          <div style="margin-top:auto;display:flex;gap:8px;flex-wrap:wrap">
             <button class="drehen-btn" id="btn-b" onclick="drehenEinzel('b')">▶ Pfeile</button>
+            <button class="drehen-btn beide" id="btn-geuebt" onclick="markiereGeuebt()" disabled>✓ Geübt</button>
           </div>
         </div>
 
@@ -346,10 +347,6 @@
       </div>
     </div>
 
-    <!-- Geübt -->
-    <div style="display:flex;justify-content:center">
-      <button class="drehen-btn beide" id="btn-geuebt" onclick="markiereGeuebt()" disabled>✓ Geübt</button>
-    </div>
 
   </div>
 </div>

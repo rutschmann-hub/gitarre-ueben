@@ -409,8 +409,9 @@
           <div class="raeder-reihe" id="raeder-b"></div>
           <div class="notation-reihe" id="notation-b"></div>
           <div class="silben-reihe" id="silben-b"></div>
-          <div style="margin-top:auto">
+          <div style="margin-top:auto;display:flex;gap:8px;flex-wrap:wrap">
             <button class="drehen-btn" id="btn-b" onclick="drehenEinzel('b')">▶ Pfeile</button>
+            <button class="drehen-btn beide" id="btn-geuebt" onclick="markiereGeuebt()" disabled>✓ Geübt</button>
           </div>
         </div>
 
@@ -426,10 +427,6 @@
       </div>
     </div>
 
-    <!-- Geübt -->
-    <div>
-      <button class="drehen-btn beide" id="btn-geuebt" onclick="markiereGeuebt()" disabled>✓ Geübt</button>
-    </div>
 
   </div>
 </div>
