@@ -437,9 +437,9 @@ function render() {
   dots.forEach(d => {
     const cx = L + (d.f-0.5)*fW;
     const cy = T + d.s*sH;
-    const isBass = d.iv === CHORD_TYPES[curChord].ivs[curInversion];
+    const isRoot = d.iv === '1'; // Grundton immer hervorheben, unabhängig von der Umkehrung
     ap(mk('circle', {cx, cy, r:10, fill:dotFill,
-      stroke:dotStroke, 'stroke-width': isBass ? 2.8 : 1.5}));
+      stroke:dotStroke, 'stroke-width': isRoot ? 2.8 : 1.5}));
     let lbl;
     if (labelMode === 'tone') {
       lbl = NOTES_FLAT[(OPEN_SEMI[d.s] + d.f) % 12];
@@ -475,7 +475,7 @@ function setInversion(n) {
     b.classList.remove('inv-aktiv-0', 'inv-aktiv-1');
     if (i === n) b.classList.add('inv-aktiv-' + n);
   });
-  curShpIdx = 0;
+  // curShpIdx bleibt – buildShpSel() prüft Gültigkeit und passt ggf. an
   buildShpSel(); render();
 }
 
@@ -529,7 +529,8 @@ window.addEventListener('message', (e) => {
     changed = true;
   }
   if (changed) {
-    curShpIdx = 0;
+    // Shape nur zurücksetzen wenn er durch die neue Konstellation ungültig wird;
+    // buildShpSel() erledigt das automatisch – kein harter Reset auf 0
     buildLegend(); buildShpSel(); render();
   }
 });
