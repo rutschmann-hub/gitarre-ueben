@@ -237,6 +237,20 @@ const SHAPES_BY_CHORD = {
   dom7: SHAPES_STD, maj7: SHAPES_STD, min7: SHAPES_MIN7, min7b5: SHAPES_STD,
 };
 
+// 1. Umkehrung: sl:1 (Terz) liegt auf der Wurzelsaite (sd:0),
+// sl:0 (Root) wandert – identische Saitenverteilungen wie SHAPES_STD
+// aber der Root belegt die "letzte" Position jeder Verteilung
+const SHAPES_INV1 = [
+  {id:'a', dots:[{sd:0,sl:1},{sd:0,sl:2},{sd:0,sl:3},{sd:0, sl:0}]},  // 4-0-0-0
+  {id:'b', dots:[{sd:0,sl:1},{sd:0,sl:2},{sd:0,sl:3},{sd:-1,sl:0}]},  // 3-1-0-0
+  {id:'c', dots:[{sd:0,sl:1},{sd:0,sl:2},{sd:-1,sl:3},{sd:-1,sl:0}]}, // 2-2-0-0
+  {id:'d', dots:[{sd:0,sl:1},{sd:0,sl:2},{sd:-1,sl:3},{sd:-2,sl:0}]}, // 2-1-1-0
+  {id:'e', dots:[{sd:0,sl:1},{sd:-1,sl:2},{sd:-1,sl:3},{sd:-1,sl:0}]},// 1-3-0-0
+  {id:'f', dots:[{sd:0,sl:1},{sd:-1,sl:2},{sd:-1,sl:3},{sd:-2,sl:0}]},// 1-2-1-0
+  {id:'g', dots:[{sd:0,sl:1},{sd:-1,sl:2},{sd:-2,sl:3},{sd:-2,sl:0}]},// 1-1-2-0
+  {id:'h', dots:[{sd:0,sl:1},{sd:-1,sl:2},{sd:-2,sl:3},{sd:-3,sl:0}]},// 1-1-1-1
+];
+
 // Alle Gruppen mit count=8; isShapeValid filtert physisch unmögliche raus
 const GROUPS = {
   '1': { prefix:'1', rs:5, count:8 },
@@ -254,7 +268,10 @@ let curShpIdx  = 0;
 let curGrundton = 'C';
 let curInversion = 0; // 0 = Grundstellung (1 3 5 7), 1 = Erste Umkehrung (3 5 7 1)
 
-function getShapes() { return SHAPES_BY_CHORD[curChord]; }
+function getShapes() {
+  if (curInversion === 1) return SHAPES_INV1;
+  return SHAPES_BY_CHORD[curChord];
+}
 function ivDisp(iv)  { return iv.replace(/b/g, '♭'); }
 
 // Intervall eines Slots relativ zum Bass-Slot der Umkehrung (negativ → +12)
