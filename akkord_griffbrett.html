@@ -118,7 +118,11 @@
     .inv-btn:hover { border-color: #888; }
     .inv-btn.inv-aktiv-0 { background: #185FA5; color: #fff; border-color: #185FA5; }
     .inv-btn.inv-aktiv-1 { background: #C76B00; color: #fff; border-color: #C76B00; }
-    .legend-dot.inv { border-color: #C76B00; background: #FDE8C0; }
+    .inv-btn.inv-aktiv-2 { background: #1A7A42; color: #fff; border-color: #1A7A42; }
+    .inv-btn.inv-aktiv-3 { background: #7B2FBE; color: #fff; border-color: #7B2FBE; }
+    .legend-dot.inv  { border-color: #C76B00; background: #FDE8C0; }
+    .legend-dot.inv2 { border-color: #1A7A42; background: #BAECD1; }
+    .legend-dot.inv3 { border-color: #7B2FBE; background: #EBD5F8; }
 
     @media (prefers-color-scheme: dark) {
       body { background: #1e1a17; color: #e8e8e8; }
@@ -148,6 +152,8 @@
       <label style="font-size:13px;font-weight:500;color:#555;white-space:nowrap">Umkehrung:</label>
       <button id="inv-btn-0" class="inv-btn inv-aktiv-0" onclick="setInversion(0)">1 3 5 7</button>
       <button id="inv-btn-1" class="inv-btn" onclick="setInversion(1)">3 5 7 1</button>
+      <button id="inv-btn-2" class="inv-btn" onclick="setInversion(2)">5 7 1 3</button>
+      <button id="inv-btn-3" class="inv-btn" onclick="setInversion(3)">7 1 3 5</button>
     </div>
   </div>
 
@@ -251,6 +257,30 @@ const SHAPES_INV1 = [
   {id:'h', dots:[{sd:0,sl:1},{sd:-1,sl:2},{sd:-2,sl:3},{sd:-3,sl:0}]},// 1-1-1-1
 ];
 
+// 2. Umkehrung: sl:2 (Quinte) auf Wurzelsaite, sl:1 (Terz) wandert zuletzt
+const SHAPES_INV2 = [
+  {id:'a', dots:[{sd:0,sl:2},{sd:0,sl:3},{sd:0,sl:0},{sd:0, sl:1}]},
+  {id:'b', dots:[{sd:0,sl:2},{sd:0,sl:3},{sd:0,sl:0},{sd:-1,sl:1}]},
+  {id:'c', dots:[{sd:0,sl:2},{sd:0,sl:3},{sd:-1,sl:0},{sd:-1,sl:1}]},
+  {id:'d', dots:[{sd:0,sl:2},{sd:0,sl:3},{sd:-1,sl:0},{sd:-2,sl:1}]},
+  {id:'e', dots:[{sd:0,sl:2},{sd:-1,sl:3},{sd:-1,sl:0},{sd:-1,sl:1}]},
+  {id:'f', dots:[{sd:0,sl:2},{sd:-1,sl:3},{sd:-1,sl:0},{sd:-2,sl:1}]},
+  {id:'g', dots:[{sd:0,sl:2},{sd:-1,sl:3},{sd:-2,sl:0},{sd:-2,sl:1}]},
+  {id:'h', dots:[{sd:0,sl:2},{sd:-1,sl:3},{sd:-2,sl:0},{sd:-3,sl:1}]},
+];
+
+// 3. Umkehrung: sl:3 (Septime) auf Wurzelsaite, sl:2 (Quinte) wandert zuletzt
+const SHAPES_INV3 = [
+  {id:'a', dots:[{sd:0,sl:3},{sd:0,sl:0},{sd:0,sl:1},{sd:0, sl:2}]},
+  {id:'b', dots:[{sd:0,sl:3},{sd:0,sl:0},{sd:0,sl:1},{sd:-1,sl:2}]},
+  {id:'c', dots:[{sd:0,sl:3},{sd:0,sl:0},{sd:-1,sl:1},{sd:-1,sl:2}]},
+  {id:'d', dots:[{sd:0,sl:3},{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2}]},
+  {id:'e', dots:[{sd:0,sl:3},{sd:-1,sl:0},{sd:-1,sl:1},{sd:-1,sl:2}]},
+  {id:'f', dots:[{sd:0,sl:3},{sd:-1,sl:0},{sd:-1,sl:1},{sd:-2,sl:2}]},
+  {id:'g', dots:[{sd:0,sl:3},{sd:-1,sl:0},{sd:-2,sl:1},{sd:-2,sl:2}]},
+  {id:'h', dots:[{sd:0,sl:3},{sd:-1,sl:0},{sd:-2,sl:1},{sd:-3,sl:2}]},
+];
+
 // Alle Gruppen mit count=8; isShapeValid filtert physisch unmögliche raus
 const GROUPS = {
   '1': { prefix:'1', rs:5, count:8 },
@@ -270,6 +300,8 @@ let curInversion = 0; // 0 = Grundstellung (1 3 5 7), 1 = Erste Umkehrung (3 5 7
 
 function getShapes() {
   if (curInversion === 1) return SHAPES_INV1;
+  if (curInversion === 2) return SHAPES_INV2;
+  if (curInversion === 3) return SHAPES_INV3;
   return SHAPES_BY_CHORD[curChord];
 }
 function ivDisp(iv)  { return iv.replace(/b/g, '♭'); }
@@ -333,7 +365,8 @@ function buildLegend() {
   const labels = ['(Root)', '(Terz)', '(Quinte)', '(Septime)'];
   CHORD_TYPES[curChord].ivs.forEach((iv, i) => {
     const div = document.createElement('div'); div.className = 'legend-item';
-    const dot = document.createElement('div'); dot.className = 'legend-dot' + (i === curInversion ? (curInversion === 0 ? ' root' : ' inv') : '');
+    const dotClasses = ['root','inv','inv2','inv3'];
+    const dot = document.createElement('div'); dot.className = 'legend-dot' + (i === curInversion ? ' ' + (dotClasses[curInversion] || 'root') : '');
     div.appendChild(dot);
     const sp = document.createElement('span');
     sp.textContent = ivDisp(iv) + ' ' + labels[i];
@@ -379,11 +412,19 @@ function render() {
   const bassFret = calcBassFret(rs);
   const strNames = ['hoch-E','H','G','D','A','tief-E'];
   const labelMode= document.getElementById('labelSel').value;
-  const invLabel = curInversion === 0 ? 'Grundstellung' : '1. Umkehrung';
-  const dotFill   = curInversion === 0 ? '#B5D4F4' : '#FDE8C0';
-  const dotStroke = curInversion === 0 ? '#185FA5' : '#C76B00';
-  const hlFill    = curInversion === 0 ? '#e8f0fb' : '#FEF3E2';
-  const txtColor  = curInversion === 0 ? '#185FA5' : '#7A3A00';
+  const INV_LABELS = ['Grundstellung','1. Umkehrung','2. Umkehrung','3. Umkehrung'];
+  const invLabel = INV_LABELS[curInversion] || 'Grundstellung';
+  const INV_COLORS = [
+    {fill:'#B5D4F4', stroke:'#185FA5', hl:'#e8f0fb', txt:'#185FA5'},
+    {fill:'#FDE8C0', stroke:'#C76B00', hl:'#FEF3E2', txt:'#7A3A00'},
+    {fill:'#BAECD1', stroke:'#1A7A42', hl:'#E6F9EE', txt:'#0E5C2E'},
+    {fill:'#EBD5F8', stroke:'#7B2FBE', hl:'#F6EAFC', txt:'#4A1880'},
+  ];
+  const col = INV_COLORS[curInversion] || INV_COLORS[0];
+  const dotFill   = col.fill;
+  const dotStroke = col.stroke;
+  const hlFill    = col.hl;
+  const txtColor  = col.txt;
 
   document.getElementById('badge').textContent = label;
   document.getElementById('akkord-desc').textContent = valid.length === 0
@@ -499,17 +540,7 @@ function setInversion(n) {
 function onChordChange() {
   curChord = document.getElementById('chordSel').value;
   curShpIdx = 0;
-  const invRow = document.getElementById('inv-row');
-  if (curChord !== 'dom7') {
-    curInversion = 0;
-    document.querySelectorAll('.inv-btn').forEach((b, i) => {
-      b.classList.remove('inv-aktiv-0', 'inv-aktiv-1');
-      if (i === 0) b.classList.add('inv-aktiv-0');
-    });
-    if (invRow) invRow.style.display = 'none';
-  } else {
-    if (invRow) invRow.style.display = 'flex';
-  }
+  // Alle Akkordtypen unterstützen alle 4 Umkehrungen
   buildLegend(); buildShpSel(); render();
 }
 function onGroupChange() {
