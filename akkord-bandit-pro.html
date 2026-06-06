@@ -14,7 +14,7 @@
       overflow-x: auto;
       display: flex;
       justify-content: center;
-      padding: 2rem 1.5rem 3rem;
+      padding: 0.75rem 1rem 1rem;
     }
 
     .bandit-wrap {
@@ -22,7 +22,7 @@
       max-width: 1080px;
       display: flex;
       flex-direction: column;
-      gap: 1.75rem;
+      gap: 0.35rem;
     }
 
     /* ─── Settings bar ─────────────────────────────────── */
@@ -92,21 +92,22 @@
     /* ─── Akkord name ──────────────────────────────────── */
     .akkord-name-display {
       font-family: 'Fraunces', serif;
-      font-size: 2.1rem;
+      font-size: 1.6rem;
       font-weight: 600;
       color: var(--accent);
-      min-height: 2.6rem;
+      min-height: 1.6rem;
       letter-spacing: -0.01em;
+      text-align: center;
     }
 
     .raeder-wrap {
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 0.75rem;
     }
 
     /* ─── Räder ────────────────────────────────────────── */
-    .raeder-block { display: flex; gap: 0; align-items: stretch; }
+    .raeder-block { display: flex; gap: 0; align-items: stretch; justify-content: center; }
     .rad-gruppe { display: flex; flex-direction: column; gap: 10px; }
     .rad-gruppe-titel {
       font-size: 0.72rem;
@@ -121,7 +122,7 @@
 
     .rad-fenster {
       width: 88px;
-      height: 108px;
+      height: 84px;
       border: 1.5px solid var(--border2);
       border-radius: 8px;
       overflow: hidden;
@@ -135,7 +136,7 @@
       flex-direction: column;
     }
     .rad-zelle {
-      height: 108px;
+      height: 84px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -154,7 +155,7 @@
     }
 
     /* ─── Ton-Pills ────────────────────────────────────── */
-    .ton-pills-reihe { display: flex; gap: 10px; }
+    .ton-pills-reihe { display: flex; gap: 10px; justify-content: center; width: 100%; }
     .ton-pill {
       width: 88px;
       display: flex;
@@ -164,18 +165,18 @@
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 6px;
+      padding: 5px 6px;
       transition: all 0.2s;
     }
     .ton-pill.leer { background: transparent; border-color: transparent; }
-    .ton-name { font-size: 20px; font-weight: 500; color: var(--accent); }
+    .ton-name { font-size: 16px; font-weight: 500; color: var(--accent); }
     .ton-funktion { font-size: 11px; color: var(--text3); }
 
     .trennlinie {
       width: 1px;
       background: var(--border);
       align-self: stretch;
-      margin: 0 1.5rem;
+      margin: 0 0.75rem;
     }
 
     /* ─── Buttons ──────────────────────────────────────── */
@@ -201,7 +202,7 @@
     .drehen-btn.beide  { border-color: var(--accent); color: var(--accent); }
     .drehen-btn.beide:hover { background: var(--accent); color: #fff; }
 
-    .start-buttons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .start-buttons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; justify-content: center; width: 100%; }
     .start-btn {
       padding: 6px 14px;
       font-family: 'DM Mono', monospace;
@@ -234,7 +235,7 @@
     .reset-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
     /* ─── Zähler ───────────────────────────────────────── */
-    .zaehler-reihe { display: flex; gap: 1.75rem; align-items: center; flex-wrap: wrap; }
+    .zaehler-reihe { display: flex; gap: 1.75rem; align-items: center; flex-wrap: wrap; justify-content: center; }
     .zaehler { font-size: 0.85rem; font-weight: 500; color: var(--text3); }
     .zaehler span { color: var(--text2); }
     .neu-gemischt { font-size: 0.78rem; color: var(--accent2); font-style: italic; opacity: 0; transition: opacity 0.5s; }
@@ -254,43 +255,16 @@
       gap: 0.5rem;
     }
 
-    /* ─── Griffbrett ───────────────────────────────────── */
-    .griffbrett-gruppe {
-      width: 250px;
-      flex-shrink: 0;
-    }
-
-    .griffbild-frame {
-      width: 100%;
-      height: 162px;
+    /* ─── Griffbrett Widget ──────────────────────────────── */
+    .griffbrett-widget-wrap {
       border: 1.5px solid var(--border2);
       border-radius: 8px;
-      background: var(--surface);
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
-      position: relative;
     }
-
-    .griffbild-leer {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--text3);
-      font-size: 0.78rem;
-      pointer-events: none;
-    }
-    .griffbild-leer-icon { font-size: 2.8rem; opacity: 0.35; }
-
-    #griffbild-img {
+    .griffbrett-widget-wrap iframe {
+      display: block;
       width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: none;
-      opacity: 0;
-      transition: opacity 0.22s ease;
+      border: none;
     }
 
     /* ─── Notations-Kästchen ──────────────────────────── */
@@ -401,10 +375,15 @@
       <span class="pro-info">🎯 12 Pfeil-Symbole · P(12,4) = 11880 Kombinationen</span>
     </div>
 
+    <!-- Griffbrett Widget -->
+    <div class="griffbrett-widget-wrap">
+      <iframe id="griffbrett-iframe" src="akkord_griffbrett.html" height="360"></iframe>
+    </div>
+
     <!-- Akkord name -->
     <div class="akkord-name-display" id="akkord-name">–</div>
 
-    <!-- Practice area: Ziffern | Pfeile | Griffbrett -->
+    <!-- Practice area: Ziffern | Pfeile -->
     <div class="raeder-wrap">
       <div class="raeder-block">
 
@@ -435,22 +414,7 @@
           </div>
         </div>
 
-        <div class="trennlinie"></div>
 
-        <!-- Griffbrett -->
-        <div class="rad-gruppe griffbrett-gruppe">
-          <div class="rad-gruppe-titel">Griffbrett</div>
-          <div class="griffbild-frame">
-            <div class="griffbild-leer" id="griffbild-leer">
-              <div class="griffbild-leer-icon">🎸</div>
-              <span>Griffbild</span>
-            </div>
-            <img id="griffbild-img" alt="Griffbild">
-          </div>
-          <div style="margin-top:auto">
-            <button class="drehen-btn" id="btn-griffbrett" onclick="zeigeGriffbild()">▶ Griffbrett</button>
-          </div>
-        </div>
 
       </div>
 
@@ -549,8 +513,6 @@ function speichereState() {
       gezogenB,
       letzteZiffern,
       letztePfeile,
-      letzterGriffbildIdx,
-      griffbildSichtbar: document.getElementById('griffbild-img').style.display === 'block',
     }));
   } catch(e) {}
 }
@@ -570,7 +532,6 @@ function ladeState() {
     if (typeof s.gezogenB === 'number') gezogenB = s.gezogenB;
     if (Array.isArray(s.letzteZiffern)) letzteZiffern = s.letzteZiffern;
     if (Array.isArray(s.letztePfeile) && s.letztePfeile.every(p => pfeilSymbole.includes(p))) letztePfeile = s.letztePfeile;
-    if (typeof s.letzterGriffbildIdx === 'number') letzterGriffbildIdx = s.letzterGriffbildIdx;
 
     // Grundton
     if (s.grundton) document.getElementById('grundton').value = s.grundton;
@@ -595,16 +556,6 @@ function ladeState() {
       animiereStrip('raeder-b', pfeilSymbole, letztePfeile, () => {});
       aktualisiereNotation(letztePfeile);
       aktualisiereSilben(letztePfeile);
-    }
-
-    // Griffbild wiederherstellen
-    if (s.griffbildSichtbar && letzterGriffbildIdx >= 0) {
-      const img  = document.getElementById('griffbild-img');
-      const leer = document.getElementById('griffbild-leer');
-      img.src            = GRIFFBILDER[aktuellerTyp][letzterGriffbildIdx];
-      img.style.display  = 'block';
-      img.style.opacity  = '1';
-      leer.style.display = 'none';
     }
 
     updateGeuebtBtn();
@@ -666,6 +617,7 @@ function waehleAkkord(typ, btn) {
   btn.classList.add('aktiv');
   if (letzteZiffern) zeigeAkkord(letzteZiffern);
   speichereState();
+  syncGriffbrett();
 }
 
 function zeigeAkkord(ziffern) {
@@ -685,6 +637,7 @@ function zeigeAkkord(ziffern) {
 document.getElementById('grundton').addEventListener('change', () => {
   if (letzteZiffern) zeigeAkkord(letzteZiffern);
   speichereState();
+  syncGriffbrett();
 });
 
 // ── Räder ────────────────────────────────────────────────
@@ -718,7 +671,7 @@ function erstellePills() {
 }
 
 function animiereStrip(containerId, symbole, ziel, cb) {
-  const h = 108;
+  const h = 84;
   for (let i = 0; i < 4; i++) {
     const strip = document.getElementById(containerId + '-strip-' + i);
     strip.style.transition = 'none';
@@ -758,51 +711,7 @@ function drehenEinzel(which) {
   }
 }
 
-// ── Griffbild ────────────────────────────────────────────
-const GRIFFBILDER = {
-  dom7: [
-    'assets/grafiken/d71111.png','assets/grafiken/d71120.png',
-    'assets/grafiken/d71210.png','assets/grafiken/d71300.png',
-    'assets/grafiken/d72200.png','assets/grafiken/d72210.png',
-    'assets/grafiken/d73100.png','assets/grafiken/d74000.png',
-  ],
-  maj7: [
-    'assets/grafiken/j71111.png','assets/grafiken/j71120.png',
-    'assets/grafiken/j71210.png','assets/grafiken/j71300.png',
-    'assets/grafiken/j72110.png','assets/grafiken/j72200.png',
-    'assets/grafiken/j73100.png','assets/grafiken/j74000.png',
-  ],
-  moll7: [
-    'assets/grafiken/m71111.png','assets/grafiken/m71120.png',
-    'assets/grafiken/m71210.png','assets/grafiken/m71300.png',
-    'assets/grafiken/m72110.png','assets/grafiken/m72200.png',
-    'assets/grafiken/m73100.png','assets/grafiken/m74000.png',
-  ],
-  moll7b5: [
-    'assets/grafiken/m7b51111.png','assets/grafiken/m7b51120.png',
-    'assets/grafiken/m7b51210.png','assets/grafiken/m7b51300.png',
-    'assets/grafiken/m7b52110.png','assets/grafiken/m7b52200.png',
-    'assets/grafiken/m7b53100.png','assets/grafiken/m7b54000.png',
-  ],
-};
-let letzterGriffbildIdx = -1;
 
-function zeigeGriffbild() {
-  const liste = GRIFFBILDER[aktuellerTyp];
-  let idx;
-  do { idx = Math.floor(Math.random() * liste.length); }
-  while (liste.length > 1 && idx === letzterGriffbildIdx);
-  letzterGriffbildIdx = idx;
-
-  const img  = document.getElementById('griffbild-img');
-  const leer = document.getElementById('griffbild-leer');
-  img.style.opacity = '0';
-  img.src = liste[idx];
-  leer.style.display = 'none';
-  img.style.display  = 'block';
-  img.onload = () => requestAnimationFrame(() => { img.style.opacity = '1'; });
-  speichereState();
-}
 
 // ── Geübt ────────────────────────────────────────────────
 function updateGeuebtBtn() {
@@ -933,6 +842,16 @@ function aktualisiereSilben(pfeile) {
   });
 }
 
+// ── Griffbrett Sync ──────────────────────────────────────
+function syncGriffbrett() {
+  const iframe = document.getElementById('griffbrett-iframe');
+  if (!iframe || !iframe.contentWindow) return;
+  iframe.contentWindow.postMessage({
+    chord:    aktuellerTyp,
+    grundton: document.getElementById('grundton').value,
+  }, '*');
+}
+
 // ── Init ─────────────────────────────────────────────────
 // Ziffern: 4 Positionen, jede zeigt [1,3,5,7]
 erstelleRad('raeder-a', 4, ziffernSymbole);
@@ -942,8 +861,11 @@ erstelleNotationsBoxen();
 erstelleSilbenBoxen();
 erstellePills();
 
+document.getElementById('griffbrett-iframe').addEventListener('load', syncGriffbrett);
+
 window.addEventListener('pageshow', (e) => {
   if (!e.persisted) ladeState();
+  syncGriffbrett();
 });
 </script>
 </body>
