@@ -604,23 +604,29 @@ function renderVerlaufPanel() {
   try { proGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}
 
   const rows = AKKORD_TYPEN.map(({ key, label }) => {
-    let total = 0, erstesDatum = null;
+    let total = 0, letztesDatum = null;
 
     // Archiv-Einträge aufsummieren
     if (archivDaten) {
       archivDaten.durchlaeufe.forEach(d => {
         const raw = d[key] ?? 0;
         const t   = typeof raw === 'object' ? (raw.total ?? raw.unique ?? 0) : raw;
-        const sd  = typeof raw === 'object' ? raw.start : null;
-        if (t > 0 && !erstesDatum) erstesDatum = sd || d.datum;
         total += t;
+        if (t > 0) letztesDatum = d.datum; // letzter Archiv-Eintrag mit Übungen dieses Typs
       });
     }
 
     // Aktueller Durchlauf
     const curr = countTotal(key);
-    if (curr > 0 && !erstesDatum) erstesDatum = startDaten[key] || null;
     total += curr;
+    // Neuester Zeitstempel aus dem aktiven Durchlauf
+    if (curr > 0) {
+      daten[key].forEach(e => {
+        if (e.count > 0 && e.zeit && (!letztesDatum || e.zeit > letztesDatum)) {
+          letztesDatum = e.zeit;
+        }
+      });
+    }
 
     const pct    = Math.min(Math.round((total / ZIEL) * 100), 100);
     const farbe  = total >= ZIEL ? 'var(--accent2)' : 'var(--accent)';
@@ -629,7 +635,7 @@ function renderVerlaufPanel() {
 
     return `<tr>
       <td style="font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:600;color:var(--text);padding:0.7rem 0.75rem;white-space:nowrap;">${label}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text3);padding:0.7rem 0.75rem;white-space:nowrap;">${erstesDatum || '–'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text3);padding:0.7rem 0.75rem;white-space:nowrap;">${letztesDatum || '–'}</td>
       <td style="padding:0.7rem 0.75rem;min-width:220px;">
         <div style="font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:600;color:${txtCol};margin-bottom:6px;">${total} / ${ZIEL}</div>
         <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;">
@@ -645,7 +651,7 @@ function renderVerlaufPanel() {
       <table class="combo-table">
         <thead><tr>
           <th style="white-space:nowrap">Akkordtyp</th>
-          <th style="white-space:nowrap">Erste Übung</th>
+          <th style="white-space:nowrap">Letzte Übung</th>
           <th>Geübt</th>
           <th style="white-space:nowrap">Geübt Pro</th>
         </tr></thead>
