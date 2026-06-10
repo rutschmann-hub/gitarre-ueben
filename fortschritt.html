@@ -619,13 +619,13 @@ function renderVerlaufPanel() {
     // Aktueller Durchlauf
     const curr = countTotal(key);
     total += curr;
-    // Neuester Zeitstempel aus dem aktiven Durchlauf
+    // Aktiver Durchlauf ist immer aktueller als Archiv → direkt überschreiben
     if (curr > 0) {
+      let latestZeit = null;
       daten[key].forEach(e => {
-        if (e.count > 0 && e.zeit && (!letztesDatum || e.zeit > letztesDatum)) {
-          letztesDatum = e.zeit;
-        }
+        if (e.count > 0 && e.zeit && (!latestZeit || e.zeit > latestZeit)) latestZeit = e.zeit;
       });
+      if (latestZeit) letztesDatum = latestZeit;
     }
 
     const pct    = Math.min(Math.round((total / ZIEL) * 100), 100);
