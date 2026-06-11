@@ -207,6 +207,21 @@ function wendeGitHubDatenAn(fortschrittObj) {
   });
 }
 
+// Zusammenführen: immer den höheren Count behalten, nie lokale Daten überschreiben
+function mergeGitHubDaten(fortschrittObj) {
+  AKKORD_TYPEN.forEach(({ key }) => {
+    const arr = fortschrittObj[key];
+    if (!Array.isArray(arr)) return;
+    arr.forEach((v, i) => {
+      if (i >= 576) return;
+      const rc = typeof v === 'boolean' ? (v ? 1 : 0)
+               : (typeof v?.count === 'number' ? v.count : (v?.done ? 1 : 0));
+      const rz = v?.zeit || '';
+      if (rc > daten[key][i].count) daten[key][i] = { count: rc, zeit: rz };
+    });
+  });
+}
+
 function laden() {
   leereDaten();
   try {
@@ -243,6 +258,7 @@ async function syncZuGitHub() {
   const out = {};
   AKKORD_TYPEN.forEach(({ key }) => { out[key] = daten[key]; });
   progressCache.fortschritt = out;
+  try { progressCache.proGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}
   await GitHubAPI.save(progressCache);
 }
 
@@ -474,10 +490,18 @@ window.addEventListener('pageshow', async () => {
         // Keine ausstehenden Änderungen → GitHub-Stand holen (anderes Gerät?)
         progressCache = await GitHubAPI.load();
         if (progressCache.fortschritt && Object.keys(progressCache.fortschritt).length) {
-          leereDaten();
-          wendeGitHubDatenAn(progressCache.fortschritt);
+          mergeGitHubDaten(progressCache.fortschritt);
           speichernLokal();
           renderPanels();
+        }
+        if (progressCache.proGeuebt) {
+          let local = {};
+          try { local = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}
+          const merged = {};
+          [...new Set([...Object.keys(local), ...Object.keys(progressCache.proGeuebt)])].forEach(k => {
+            merged[k] = Math.max(local[k] || 0, progressCache.proGeuebt[k] || 0);
+          });
+          localStorage.setItem('gitueben_pro_geuebt', JSON.stringify(merged));
         }
       }
     } catch(e) {}
