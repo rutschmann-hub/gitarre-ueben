@@ -151,6 +151,7 @@
       <option value="maj7">Major 7 (1 3 5 7)</option>
       <option value="min7">Moll 7 (1 ♭3 5 ♭7)</option>
       <option value="min7b5">Moll 7♭5 (1 ♭3 ♭5 ♭7)</option>
+      <option value="dim7">Dim 7 (1 ♭3 ♭5 ♭♭7)</option>
     </select>
     <div id="inv-row" style="display:flex;gap:4px;align-items:center;margin-left:10px">
       <label style="font-size:13px;font-weight:500;color:#555;white-space:nowrap">Umkehrung:</label>
@@ -221,7 +222,8 @@ const CHORD_TYPES = {
   dom7:   { name: 'Dom7',     ivs: ['1','3','5','b7'],   semis: [0,4,7,10] },
   maj7:   { name: 'Maj7',     ivs: ['1','3','5','7'],    semis: [0,4,7,11] },
   min7:   { name: 'Moll7',    ivs: ['1','b3','5','b7'],  semis: [0,3,7,10] },
-  min7b5: { name: 'Moll7♭5', ivs: ['1','b3','b5','b7'], semis: [0,3,6,10] },
+  min7b5: { name: 'Moll7♭5', ivs: ['1','b3','b5','b7'],  semis: [0,3,6,10] },
+  dim7:   { name: 'Dim7',    ivs: ['1','b3','b5','bb7'], semis: [0,3,6,9]  },
 };
 
 // ── Shape-Definitionen ─────────────────────────────────────────
@@ -247,7 +249,7 @@ const SHAPES_MIN7 = [
   {id:'h', dots:[{sd:0,sl:0},{sd:-1,sl:1},{sd:-2,sl:2},{sd:-3,sl:3}]},
 ];
 const SHAPES_BY_CHORD = {
-  dom7: SHAPES_STD, maj7: SHAPES_STD, min7: SHAPES_MIN7, min7b5: SHAPES_STD,
+  dom7: SHAPES_STD, maj7: SHAPES_STD, min7: SHAPES_MIN7, min7b5: SHAPES_STD, dim7: SHAPES_STD,
 };
 
 // 1. Umkehrung: sl:1 (Terz) liegt auf der Wurzelsaite (sd:0),
@@ -571,7 +573,7 @@ function nav(dir) {
 
 // ── Sync vom Elternfenster (akkord-bandit.html) ───────────────
 // Elternseite schickt { chord: 'dom7'|'maj7'|'moll7'|'moll7b5', grundton: 'C'…'B' }
-const CHORD_MAP = { dom7:'dom7', maj7:'maj7', moll7:'min7', moll7b5:'min7b5' };
+const CHORD_MAP = { dom7:'dom7', maj7:'maj7', moll7:'min7', moll7b5:'min7b5', dim7:'dim7' };
 window.addEventListener('message', (e) => {
   const data = e.data || {};
   let changed = false;

@@ -293,6 +293,7 @@
           <button class="akk-btn" data-typ="maj7" onclick="waehleAkkord('maj7',this)">maj7</button>
           <button class="akk-btn" data-typ="moll7" onclick="waehleAkkord('moll7',this)">moll7</button>
           <button class="akk-btn" data-typ="moll7b5" onclick="waehleAkkord('moll7b5',this)">moll7b5</button>
+          <button class="akk-btn" data-typ="dim7" onclick="waehleAkkord('dim7',this)">dim7</button>
         </div>
       </div>
     </div>
@@ -356,7 +357,8 @@ const akkordTypen = {
   dom7:    { label:'7',    toene:{'C':'C E G Bb','Db':'Db F Ab Cb','D':'D F# A C','Eb':'Eb G Bb Db','E':'E G# B D','F':'F A C Eb','Gb':'Gb Bb Db Fb','G':'G B D F','Ab':'Ab C Eb Gb','A':'A C# E G','Bb':'Bb D F Ab','B':'B D# F# A'}, funkt:{'1':'Grundton','3':'Terz','5':'Quinte','7':'b7'} },
   maj7:    { label:'maj7', toene:{'C':'C E G B','Db':'Db F Ab C','D':'D F# A C#','Eb':'Eb G Bb D','E':'E G# B D#','F':'F A C E','Gb':'Gb Bb Db F','G':'G B D F#','Ab':'Ab C Eb G','A':'A C# E G#','Bb':'Bb D F A','B':'B D# F# A#'}, funkt:{'1':'Grundton','3':'Terz','5':'Quinte','7':'7'} },
   moll7:   { label:'m7',   toene:{'C':'C Eb G Bb','Db':'Db E Ab Cb','D':'D F A C','Eb':'Eb Gb Bb Db','E':'E G B D','F':'F Ab C Eb','Gb':'Gb A Db Fb','G':'G Bb D F','Ab':'Ab B Eb Gb','A':'A C E G','Bb':'Bb Db F Ab','B':'B D F# A'}, funkt:{'1':'Grundton','3':'b3','5':'Quinte','7':'b7'} },
-  moll7b5: { label:'m7b5', toene:{'C':'C Eb Gb Bb','Db':'Db E G Cb','D':'D F Ab C','Eb':'Eb Gb A Db','E':'E G Bb D','F':'F Ab B Eb','Gb':'Gb A C Fb','G':'G Bb Db F','Ab':'Ab B D Gb','A':'A C Eb G','Bb':'Bb Db E Ab','B':'B D F A'}, funkt:{'1':'Grundton','3':'b3','5':'b5','7':'b7'} }
+  moll7b5: { label:'m7b5', toene:{'C':'C Eb Gb Bb','Db':'Db E G Cb','D':'D F Ab C','Eb':'Eb Gb A Db','E':'E G Bb D','F':'F Ab B Eb','Gb':'Gb A C Fb','G':'G Bb Db F','Ab':'Ab B D Gb','A':'A C Eb G','Bb':'Bb Db E Ab','B':'B D F A'}, funkt:{'1':'Grundton','3':'b3','5':'b5','7':'b7'} },
+  dim7:    { label:'dim7', toene:{'C':'C Eb Gb A','Db':'Db E G Bb','D':'D F Ab B','Eb':'Eb Gb A C','E':'E G Bb Db','F':'F Ab B D','Gb':'Gb A C Eb','G':'G Bb Db E','Ab':'Ab B D F','A':'A C Eb Gb','Bb':'Bb Db E G','B':'B D F Ab'}, funkt:{'1':'Grundton','3':'b3','5':'b5','7':'bb7'} }
 };
 
 const ziffernSymbole = ['1','3','5','7'];
