@@ -509,8 +509,8 @@ function render() {
       stroke:dotStroke, 'stroke-width': isRoot ? 2.8 : 1.5}));
     let lbl;
     if (labelMode === 'tone') {
-      const noteArr = FLAT_ROOTS.has(curGrundton) ? NOTES_FLAT : NOTES_SHARP;
-      lbl = noteArr[(OPEN_SEMI[d.s] + d.f) % 12];
+      const useFlatArr = FLAT_ROOTS.has(curGrundton) || d.iv.startsWith('b');
+      lbl = (useFlatArr ? NOTES_FLAT : NOTES_SHARP)[(OPEN_SEMI[d.s] + d.f) % 12];
     } else {
       lbl = ivDisp(d.iv);
     }
