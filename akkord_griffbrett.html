@@ -312,8 +312,9 @@ const GROUPS = {
 const OPEN_MIDI = [64, 59, 55, 50, 45, 40];
 // Zwei Saitengruppen für Drop-2 (Reihenfolge: tief → hoch)
 const DROP2_GRPS = [
-  { label: 'A–D–G–H', rows: [4, 3, 2, 1] },
   { label: 'E–A–D–G', rows: [5, 4, 3, 2] },
+  { label: 'A–D–G–H', rows: [4, 3, 2, 1] },
+  { label: 'D–G–H–E', rows: [3, 2, 1, 0] },
 ];
 
 // ── Navigations-Tabellen ───────────────────────────────────────
@@ -574,11 +575,14 @@ function renderDrop2() {
 function buildLegend() {
   const box    = document.getElementById('legendBox');
   box.innerHTML = '';
-  const labels = ['(Root)', '(Terz)', '(Quinte)', '(Septime)'];
+  const labels    = ['(Root)', '(Terz)', '(Quinte)', '(Septime)'];
+  const dotCls    = ['root','inv','inv2','inv3'];
   CHORD_TYPES[curChord].ivs.forEach((iv, i) => {
     const div = document.createElement('div'); div.className = 'legend-item';
-    const dotClasses = ['root','inv','inv2','inv3'];
-    const dot = document.createElement('div'); dot.className = 'legend-dot' + (i === curInversion ? ' ' + (dotClasses[curInversion] || 'root') : '');
+    const dot = document.createElement('div');
+    // Drop-2: alle 4 Töne farbig; Griffbild: nur aktive Umkehrung farbig
+    const active = curMode === 'drop2' ? true : (i === curInversion);
+    dot.className = 'legend-dot' + (active ? ' ' + dotCls[i] : '');
     div.appendChild(dot);
     const sp = document.createElement('span');
     sp.textContent = ivDisp(iv) + ' ' + labels[i];
@@ -779,7 +783,7 @@ function toggleMode() {
   document.getElementById('umkehrung-row').style.display = isD2 ? 'none' : '';
   document.getElementById('saite-badge').textContent    = isD2 ? DROP2_GRPS[curDrop2Grp].label : GROUP_LABELS[curGroup];
   if (isD2) curDrop2Voicing = 0;
-  render();
+  buildLegend(); render();
 }
 
 // ── Sync vom Elternfenster (akkord-bandit.html) ───────────────
