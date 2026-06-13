@@ -394,16 +394,14 @@ function computeDots(shpIdx, rs) {
 }
 
 // ── Drop-2 Berechnung ──────────────────────────────────────────
-// Erste Lage: Root im Bass, Drop-2-Verteilung [0,2,3,1] (tief→hoch)
-function d2v0(rootSemi, chordSemis, rows) {
-  const slotOrd = [0, 2, 3, 1];
+// Erste Lage mit gegebenem Slot-Order (Drop-2-Muster), offene Saiten erlaubt
+function d2v0(rootSemi, chordSemis, rows, slotOrd) {
   const frets = [], slots = [], midis = [];
   let prev = -Infinity;
   for (let i = 0; i < 4; i++) {
-    const openM = OPEN_MIDI[rows[i]];
+    const openM  = OPEN_MIDI[rows[i]];
     const target = (rootSemi + chordSemis[slotOrd[i]]) % 12;
     let f = (target - openM % 12 + 12) % 12;
-    if (f === 0) f = 12;
     let m = openM + f;
     while (m <= prev) { f += 12; m += 12; }
     if (f > FC) return null;
@@ -413,38 +411,47 @@ function d2v0(rootSemi, chordSemis, rows) {
   return { frets, slots, midis };
 }
 
-// Nächste Lage: jeden Ton diatonisch zur nächsten Akkordnote verschieben
+// Nächste Lage: jeden Ton zur nächsten Akkordnote verschieben (aufsteigend)
 function d2shift(prev, rows, chordSemis, rootSemi) {
   const frets = [], slots = [], midis = [];
+  let prevNewMidi = -Infinity;
   for (let i = 0; i < 4; i++) {
     const openM   = OPEN_MIDI[rows[i]];
     const newSlot = (prev.slots[i] + 1) % 4;
     const target  = (rootSemi + chordSemis[newSlot]) % 12;
     let f = (target - openM % 12 + 12) % 12;
-    if (f === 0) f = 12;
     let m = openM + f;
-    while (m <= prev.midis[i]) { f += 12; m += 12; }
+    const minMidi = Math.max(prev.midis[i], prevNewMidi);
+    while (m <= minMidi) { f += 12; m += 12; }
     if (f > FC) return null;
     frets.push(f); slots.push(newSlot); midis.push(m);
+    prevNewMidi = m;
   }
   return { frets, slots, midis };
 }
 
-// Alle gültigen Lagen für aktuelle Auswahl
+// Alle 4 Startslots probieren; Startslot mit meisten Lagen & niedrigstem Position wählen
 function getDrop2Voicings() {
   const grp   = DROP2_GRPS[curDrop2Grp];
   const chord = CHORD_TYPES[curChord];
   const root  = NOTES_SEMI[curGrundton];
-  const list  = [];
-  let v = d2v0(root, chord.semis, grp.rows);
-  if (!v) return [];
-  list.push(v);
-  for (let k = 1; k < 4; k++) {
-    v = d2shift(list[k - 1], grp.rows, chord.semis, root);
-    if (!v) break;
-    list.push(v);
+  let bestList = [], bestScore = Infinity;
+
+  for (let s = 0; s < 4; s++) {
+    const slotOrd = [s, (s+2)%4, (s+3)%4, (s+1)%4];
+    const v0 = d2v0(root, chord.semis, grp.rows, slotOrd);
+    if (!v0) continue;
+    const list = [v0];
+    for (let k = 1; k < 4; k++) {
+      const v = d2shift(list[k-1], grp.rows, chord.semis, root);
+      if (!v) break;
+      list.push(v);
+    }
+    // Priorität: mehr Lagen > niedrigerer höchster Bund in erster Lage
+    const score = (4 - list.length) * 100 + Math.max(...v0.frets);
+    if (score < bestScore) { bestScore = score; bestList = list; }
   }
-  return list;
+  return bestList;
 }
 
 function renderDrop2() {
