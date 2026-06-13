@@ -125,10 +125,13 @@
     #ctx-btn-1 { border-color:#C76B00; color:#C76B00; background:rgba(199,107,0,.07); }
     #ctx-btn-2 { border-color:#1A7A42; color:#1A7A42; background:rgba(26,122,66,.07); }
     #ctx-btn-3 { border-color:#7B2FBE; color:#7B2FBE; background:rgba(123,47,190,.07); }
+    /* Lage 5 = Oktav-Wiederholung von Lage 1 → gleiche Farbe (blau), gestrichelt */
+    #ctx-btn-4 { border-color:#185FA5; color:#185FA5; background:rgba(24,95,165,.07); border-style:dashed; }
     .ctx-btn.ctx-aktiv-0 { background:#185FA5; color:#fff; border-color:#185FA5; }
     .ctx-btn.ctx-aktiv-1 { background:#C76B00; color:#fff; border-color:#C76B00; }
     .ctx-btn.ctx-aktiv-2 { background:#1A7A42; color:#fff; border-color:#1A7A42; }
     .ctx-btn.ctx-aktiv-3 { background:#7B2FBE; color:#fff; border-color:#7B2FBE; }
+    .ctx-btn.ctx-aktiv-4 { background:#185FA5; color:#fff; border-color:#185FA5; }
 
     .ctrl-lbl {
       font-size: 12px; font-weight: 600; color: #666; white-space: nowrap;
@@ -215,6 +218,7 @@
         <button id="ctx-btn-1" class="ctx-btn" onclick="toggleCtxVoicing(1)">2</button>
         <button id="ctx-btn-2" class="ctx-btn" onclick="toggleCtxVoicing(2)">3</button>
         <button id="ctx-btn-3" class="ctx-btn" onclick="toggleCtxVoicing(3)">4</button>
+        <button id="ctx-btn-4" class="ctx-btn" onclick="toggleCtxVoicing(4)" title="Lage 5 (Oktav-Wiederholung von Lage 1)">5</button>
         <button id="ctx-drop-btn" class="nav-btn" onclick="toggleCtxDropType()" title="Overlay Drop 2 / Drop 3" style="margin-left:6px;font-size:11px;font-weight:600;min-width:58px">Drop 2</button>
       </div>
     </div>
