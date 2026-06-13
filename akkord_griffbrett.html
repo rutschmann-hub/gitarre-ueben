@@ -735,22 +735,27 @@ function render() {
     const d2GrpIdx = GRPD2MAP[curGroup];
     const grp2 = DROP2_GRPS[d2GrpIdx];
     const vlist2 = getDrop2Voicings(d2GrpIdx);
-    const CTX_COLORS = [
-      {fill:'#B5D4F4', stroke:'#185FA5'},
-      {fill:'#FDE8C0', stroke:'#C76B00'},
-      {fill:'#BAECD1', stroke:'#1A7A42'},
-      {fill:'#EBD5F8', stroke:'#7B2FBE'},
-    ];
+    const chord2 = CHORD_TYPES[curChord];
+    const CTX = {fill:'#dce7f0', stroke:'#7a94b0', txt:'#3d5878'};
     vlist2.forEach((v, vi) => {
       if (!curCtxVoicings.has(vi)) return;
-      const c = CTX_COLORS[vi];
       for (let i = 0; i < 4; i++) {
         const fret = v.frets[i];
         if (fret < 1 || fret > FC) continue;
         const cx = L + (fret - 0.5) * fW;
         const cy = T + grp2.rows[i] * sH;
-        ap(mk('circle', {cx, cy, r:8, fill:c.fill, stroke:c.stroke,
-          'stroke-width':1.5, opacity:0.8}));
+        ap(mk('circle', {cx, cy, r:8, fill:CTX.fill, stroke:CTX.stroke, 'stroke-width':1.5}));
+        let lbl;
+        if (curLabelMode === 'tone') {
+          const iv = chord2.ivs[v.slots[i]];
+          const useFlat = FLAT_ROOTS.has(curGrundton) || iv.startsWith('b');
+          lbl = (useFlat ? NOTES_FLAT : NOTES_SHARP)[(OPEN_SEMI[grp2.rows[i]] + fret) % 12];
+        } else {
+          lbl = ivDisp(chord2.ivs[v.slots[i]]);
+        }
+        const fs = lbl.length > 2 ? 7.5 : lbl.length > 1 ? 8.5 : 9.5;
+        const tl = tx(lbl, cx, cy + 3.5, fs, CTX.txt, 'middle');
+        tl.setAttribute('font-weight', '500'); ap(tl);
       }
     });
   }
@@ -806,10 +811,12 @@ function navGrundton(dir) {
   const i = GRUNDTON_ORDER.indexOf(curGrundton);
   curGrundton = GRUNDTON_ORDER[(i + dir + GRUNDTON_ORDER.length) % GRUNDTON_ORDER.length];
   document.getElementById('grundton-sel').value = curGrundton;
+  if (window.parent !== window) window.parent.postMessage({grundtonUpdate: curGrundton}, '*');
   buildLegend(); buildShpSel(); render();
 }
 function setGrundtonSel(val) {
   curGrundton = val;
+  if (window.parent !== window) window.parent.postMessage({grundtonUpdate: curGrundton}, '*');
   buildLegend(); buildShpSel(); render();
 }
 function navChord(dir) {

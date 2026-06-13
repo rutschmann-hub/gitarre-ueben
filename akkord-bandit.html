@@ -275,17 +275,15 @@
 <div class="page-main">
   <div class="bandit-wrap">
 
-    <!-- Settings bar: Grundton + Akkordtyp -->
+    <!-- Grundton – versteckt, wird vom Griffbrett-Widget gesteuert -->
+    <select id="grundton" style="position:absolute;left:-9999px" aria-hidden="true">
+      <option>C</option><option>Db</option><option>D</option><option>Eb</option>
+      <option>E</option><option>F</option><option>Gb</option><option>G</option>
+      <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
+    </select>
+
+    <!-- Settings bar: Akkordtyp -->
     <div class="settings-bar">
-      <div class="settings-group">
-        <span class="section-label">Grundton</span>
-        <select id="grundton">
-          <option>C</option><option>Db</option><option>D</option><option>Eb</option>
-          <option>E</option><option>F</option><option>Gb</option><option>G</option>
-          <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
-        </select>
-      </div>
-      <div class="settings-sep"></div>
       <div class="settings-group">
         <span class="section-label">Akkordtyp</span>
         <div class="akkord-buttons">
@@ -657,6 +655,14 @@ erstellePills();
 
 // Griffbrett-iframe: beim Laden initialen Zustand schicken
 document.getElementById('griffbrett-iframe').addEventListener('load', syncGriffbrett);
+
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.grundtonUpdate) {
+    document.getElementById('grundton').value = e.data.grundtonUpdate;
+    if (typeof letzteZiffern !== 'undefined' && letzteZiffern) zeigeAkkord(letzteZiffern);
+    speichereState();
+  }
+});
 
 window.addEventListener('pageshow', (e) => {
   if (!e.persisted) ladeState();
