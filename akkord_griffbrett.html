@@ -125,8 +125,12 @@
     }
     .nav-grid {
       display: grid;
-      grid-template-columns: 62px 28px 82px 28px;
+      grid-template-columns: 70px 28px 82px 28px;
       gap: 5px; align-items: center;
+    }
+    #grundton-sel {
+      font-weight: 600; color: #185FA5; background: #f0f4ff;
+      padding: 4px 4px; width: 100%;
     }
     .nav-grid .badge { text-align: center; }
     .ctrl-div-v {
@@ -153,8 +157,13 @@
 
   <div class="controls-wrap">
 
-    <!-- Akkord + Saite im ausgerichteten Grid -->
+    <!-- Grundton + Akkord + Saite im ausgerichteten Grid -->
     <div class="nav-grid">
+      <span class="ctrl-lbl">Grundton</span>
+      <button class="nav-btn" onclick="navGrundton(-1)">←</button>
+      <select id="grundton-sel" onchange="setGrundtonSel(this.value)"></select>
+      <button class="nav-btn" onclick="navGrundton(1)">→</button>
+
       <span class="ctrl-lbl">Akkord</span>
       <button class="nav-btn" onclick="navChord(-1)">←</button>
       <span class="badge" id="chord-badge">Dom7</span>
@@ -312,12 +321,13 @@ const GROUPS = {
 const OPEN_MIDI = [64, 59, 55, 50, 45, 40];
 // Zwei Saitengruppen für Drop-2 (Reihenfolge: tief → hoch)
 const DROP2_GRPS = [
-  { label: 'E–A–D–G', rows: [5, 4, 3, 2] },
-  { label: 'A–D–G–H', rows: [4, 3, 2, 1] },
-  { label: 'D–G–H–E', rows: [3, 2, 1, 0] },
+  { label: 'E–A–D–G', badge: 'tief',  rows: [5, 4, 3, 2] },
+  { label: 'A–D–G–H', badge: 'Mitte', rows: [4, 3, 2, 1] },
+  { label: 'D–G–H–E', badge: 'hoch',  rows: [3, 2, 1, 0] },
 ];
 
 // ── Navigations-Tabellen ───────────────────────────────────────
+const GRUNDTON_ORDER = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 const CHORD_ORDER  = ['dom7','maj7','min7','min7b5','dim7'];
 const CHORD_LABELS = { dom7:'Dom7', maj7:'Maj7', min7:'Moll7', min7b5:'Moll7♭5', dim7:'Dim7' };
 const GROUP_ORDER  = ['1','2','3','4','5','6'];
@@ -740,6 +750,16 @@ function setInversion(n) {
   buildShpSel(); render();
 }
 
+function navGrundton(dir) {
+  const i = GRUNDTON_ORDER.indexOf(curGrundton);
+  curGrundton = GRUNDTON_ORDER[(i + dir + GRUNDTON_ORDER.length) % GRUNDTON_ORDER.length];
+  document.getElementById('grundton-sel').value = curGrundton;
+  buildLegend(); buildShpSel(); render();
+}
+function setGrundtonSel(val) {
+  curGrundton = val;
+  buildLegend(); buildShpSel(); render();
+}
 function navChord(dir) {
   const i = CHORD_ORDER.indexOf(curChord);
   curChord = CHORD_ORDER[(i + dir + CHORD_ORDER.length) % CHORD_ORDER.length];
@@ -751,7 +771,7 @@ function navSaite(dir) {
   if (curMode === 'drop2') {
     curDrop2Grp = (curDrop2Grp + dir + DROP2_GRPS.length) % DROP2_GRPS.length;
     curDrop2Voicing = 0;
-    document.getElementById('saite-badge').textContent = DROP2_GRPS[curDrop2Grp].label;
+    document.getElementById('saite-badge').textContent = DROP2_GRPS[curDrop2Grp].badge;
     render(); return;
   }
   const i = GROUP_ORDER.indexOf(curGroup);
@@ -780,7 +800,7 @@ function toggleMode() {
   const isD2 = curMode === 'drop2';
   document.getElementById('mode-btn').textContent       = isD2 ? 'Griffbild' : 'Lagen';
   document.getElementById('umkehrung-row').style.display = isD2 ? 'none' : '';
-  document.getElementById('saite-badge').textContent    = isD2 ? DROP2_GRPS[curDrop2Grp].label : GROUP_LABELS[curGroup];
+  document.getElementById('saite-badge').textContent    = isD2 ? DROP2_GRPS[curDrop2Grp].badge : GROUP_LABELS[curGroup];
   if (isD2) curDrop2Voicing = 0;
   buildLegend(); render();
 }
@@ -798,6 +818,7 @@ window.addEventListener('message', (e) => {
   }
   if (data.grundton && NOTES_SEMI[data.grundton] !== undefined && data.grundton !== curGrundton) {
     curGrundton = data.grundton;
+    document.getElementById('grundton-sel').value = curGrundton;
     changed = true;
   }
   if (changed) {
@@ -808,6 +829,14 @@ window.addEventListener('message', (e) => {
 });
 
 // ── Init ───────────────────────────────────────────────────────
+(function() {
+  const sel = document.getElementById('grundton-sel');
+  GRUNDTON_ORDER.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n; sel.appendChild(o);
+  });
+  sel.value = curGrundton;
+})();
 buildLegend();
 buildShpSel();
 render();
