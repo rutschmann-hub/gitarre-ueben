@@ -744,7 +744,7 @@ function render() {
         if (fret < 1 || fret > FC) continue;
         const cx = L + (fret - 0.5) * fW;
         const cy = T + grp2.rows[i] * sH;
-        ap(mk('circle', {cx, cy, r:8, fill:CTX.fill, stroke:CTX.stroke, 'stroke-width':1.5}));
+        ap(mk('circle', {cx, cy, r:8, fill:CTX.fill, stroke:CTX.stroke, 'stroke-width':1.5, opacity:0.45}));
         let lbl;
         if (curLabelMode === 'tone') {
           const iv = chord2.ivs[v.slots[i]];
@@ -755,7 +755,7 @@ function render() {
         }
         const fs = lbl.length > 2 ? 7.5 : lbl.length > 1 ? 8.5 : 9.5;
         const tl = tx(lbl, cx, cy + 3.5, fs, CTX.txt, 'middle');
-        tl.setAttribute('font-weight', '500'); ap(tl);
+        tl.setAttribute('font-weight', '500'); tl.setAttribute('opacity', '0.65'); ap(tl);
       }
     });
   }
