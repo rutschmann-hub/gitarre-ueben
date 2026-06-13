@@ -394,6 +394,8 @@ function computeDots(shpIdx, rs) {
 }
 
 // ── Drop-2 Berechnung ──────────────────────────────────────────
+const D2_MF = 15; // Maximaler Bund für Drop-2-Darstellung
+
 // Erste Lage mit gegebenem Slot-Order (Drop-2-Muster), offene Saiten erlaubt
 function d2v0(rootSemi, chordSemis, rows, slotOrd) {
   const frets = [], slots = [], midis = [];
@@ -404,7 +406,7 @@ function d2v0(rootSemi, chordSemis, rows, slotOrd) {
     let f = (target - openM % 12 + 12) % 12;
     let m = openM + f;
     while (m <= prev) { f += 12; m += 12; }
-    if (f > FC) return null;
+    if (f > D2_MF) return null;
     frets.push(f); slots.push(slotOrd[i]); midis.push(m);
     prev = m;
   }
@@ -423,7 +425,7 @@ function d2shift(prev, rows, chordSemis, rootSemi) {
     let m = openM + f;
     const minMidi = Math.max(prev.midis[i], prevNewMidi);
     while (m <= minMidi) { f += 12; m += 12; }
-    if (f > FC) return null;
+    if (f > D2_MF) return null;
     frets.push(f); slots.push(newSlot); midis.push(m);
     prevNewMidi = m;
   }
@@ -459,73 +461,113 @@ function renderDrop2() {
   const chord = CHORD_TYPES[curChord];
   const vlist = getDrop2Voicings();
 
-  if (curDrop2Voicing >= vlist.length) curDrop2Voicing = Math.max(0, vlist.length - 1);
-  const hasV    = vlist.length > 0;
-  const voicing = hasV ? vlist[curDrop2Voicing] : null;
-  document.getElementById('badge').textContent = hasV ? `${curDrop2Voicing + 1}/${vlist.length}` : '–';
+  document.getElementById('badge').textContent = vlist.length ? `${vlist.length} Lagen` : '–';
 
-  const bassName = hasV
-    ? (FLAT_ROOTS.has(curGrundton) ? NOTES_FLAT : NOTES_SHARP)[(NOTES_SEMI[curGrundton] + chord.semis[voicing.slots[0]]) % 12]
-    : '';
-  document.getElementById('akkord-desc').textContent = hasV
-    ? `${chord.name} · ${curGrundton} · ${grp.label} · Lage ${curDrop2Voicing + 1} · Bass: ${bassName} (${ivDisp(chord.ivs[voicing.slots[0]])})`
-    : `Keine Lage verfügbar für ${curGrundton} ${chord.name} auf ${grp.label}`;
+  if (vlist.length) {
+    const isFlat = FLAT_ROOTS.has(curGrundton);
+    const bassNotes = vlist.map(v => {
+      const n = (NOTES_SEMI[curGrundton] + chord.semis[v.slots[0]]) % 12;
+      return (isFlat ? NOTES_FLAT : NOTES_SHARP)[n] + ' (' + ivDisp(chord.ivs[v.slots[0]]) + ')';
+    });
+    document.getElementById('akkord-desc').textContent =
+      `${chord.name} · ${curGrundton} · ${grp.label} · ${bassNotes.join(' – ')}`;
+  } else {
+    document.getElementById('akkord-desc').textContent =
+      `Keine Lagen für ${curGrundton} ${chord.name} auf ${grp.label}`;
+  }
 
+  // SVG – Bund 0 bis D2_MF, breiterer linker Rand für offene Saiten
   const svg = document.getElementById('akkord-fb');
-  const W=760, H=162, L=16, R=W-4, T=16, B=H-14, SC=6;
-  const fW=(R-L)/FC, sH=(B-T)/(SC-1);
+  const W=760, H=162, L=36, R=W-4, T=16, B=H-14, SC=6;
+  const fW = (R - L) / D2_MF;
+  const sH = (B - T) / (SC - 1);
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = '';
   const ap = e => svg.appendChild(e);
 
+  // Sattel
   ap(mk('rect', {x:L-4, y:T-2, width:5, height:(SC-1)*sH+4, fill:'#555'}));
-  for (let f = 0; f <= FC; f++)
-    ap(mk('line', {x1:L+f*fW, y1:T, x2:L+f*fW, y2:B, stroke:'#888', 'stroke-width':f===0?2:0.7, opacity:0.5}));
+
+  // Bundlinien 0–D2_MF
+  for (let f = 0; f <= D2_MF; f++)
+    ap(mk('line', {x1:L+f*fW, y1:T, x2:L+f*fW, y2:B,
+      stroke:'#888', 'stroke-width':f===0?2:0.7, opacity:0.5}));
+
+  // Saiten (bis vor Sattel, damit offene-Saiten-Punkte Platz haben)
   const tk = [1.2,1.1,1.0,1.6,1.9,2.2];
   for (let s = 0; s < SC; s++)
-    ap(mk('line', {x1:L-4, y1:T+s*sH, x2:R, y2:T+s*sH, stroke:'#444', 'stroke-width':tk[s], opacity:0.4}));
-  for (const f of [3,5,7,9,12,15,17]) {
-    const cx = L+(f-0.5)*fW;
+    ap(mk('line', {x1:L-28, y1:T+s*sH, x2:R, y2:T+s*sH,
+      stroke:'#444', 'stroke-width':tk[s], opacity:0.4}));
+
+  // Bundmarkierungen
+  for (const f of [3,5,7,9,12,15]) {
+    const cx = L + (f-0.5)*fW;
     if (f===12) [1.5,3.5].forEach(o=>ap(mk('circle',{cx,cy:T+o*sH,r:3.5,fill:'#ccc'})));
     else ap(mk('circle',{cx,cy:T+2.5*sH,r:3.5,fill:'#ccc'}));
     ap(tx(String(f), cx, B+11, 8, '#aaa', 'middle'));
   }
+  ap(tx('0', L-14, B+11, 8, '#aaa', 'middle'));
+
+  // Saitenbeschriftungen
   for (let s = 0; s < SC; s++) {
-    const t = tx(OPEN_STR[s], L-8, T+s*sH+3, 9, '#666', 'middle');
-    t.setAttribute('font-weight', '600'); ap(t);
+    const t = tx(OPEN_STR[s], L-24, T+s*sH+3, 9, '#666', 'middle');
+    t.setAttribute('font-weight','600'); ap(t);
   }
 
-  if (!hasV) return;
+  if (!vlist.length) return;
 
   const INV_COLORS = [
-    {fill:'#B5D4F4',stroke:'#185FA5',hl:'#e8f0fb',txt:'#185FA5'},
-    {fill:'#FDE8C0',stroke:'#C76B00',hl:'#FEF3E2',txt:'#7A3A00'},
-    {fill:'#BAECD1',stroke:'#1A7A42',hl:'#E6F9EE',txt:'#0E5C2E'},
-    {fill:'#EBD5F8',stroke:'#7B2FBE',hl:'#F6EAFC',txt:'#4A1880'},
+    {fill:'#B5D4F4', stroke:'#185FA5', txt:'#185FA5'},
+    {fill:'#FDE8C0', stroke:'#C76B00', txt:'#7A3A00'},
+    {fill:'#BAECD1', stroke:'#1A7A42', txt:'#0E5C2E'},
+    {fill:'#EBD5F8', stroke:'#7B2FBE', txt:'#4A1880'},
   ];
+  const BAND_COLORS = ['#e8f0fb','#fef3e2','#e6f9ee','#f6eafc'];
 
-  const allFrets = voicing.frets;
-  const lo = Math.min(...allFrets), hi = Math.max(...allFrets);
-  const hx1 = L+(lo-1)*fW, hx2 = L+hi*fW;
-  if (hx2>hx1) svg.insertBefore(mk('rect',{x:hx1,y:T-4,width:hx2-hx1,height:(SC-1)*sH+8,fill:'#e8f0fb',rx:4,opacity:0.7}), svg.firstChild);
+  // cx für Bund f (Bund 0 = vor Sattel)
+  function cxOf(f) { return f === 0 ? L-14 : L + (f-0.5)*fW; }
 
-  for (let i = 0; i < 4; i++) {
-    const row  = grp.rows[i];
-    const fret = voicing.frets[i];
-    const slot = voicing.slots[i];
-    const iv   = chord.ivs[slot];
-    const c    = INV_COLORS[slot];
-    const cx   = L+(fret-0.5)*fW, cy = T+row*sH;
-    ap(mk('circle',{cx,cy,r:8,fill:c.fill,stroke:c.stroke,'stroke-width':slot===0?2.8:1.5}));
-    let lbl;
-    if (curLabelMode === 'tone') {
-      const useFlatArr = FLAT_ROOTS.has(curGrundton) || iv.startsWith('b');
-      lbl = (useFlatArr ? NOTES_FLAT : NOTES_SHARP)[(OPEN_SEMI[row]+fret)%12];
-    } else { lbl = ivDisp(iv); }
-    const fs = lbl.length>2?7.5:lbl.length>1?8.5:9.5;
-    const tl = tx(lbl, cx, cy+3.5, fs, c.txt, 'middle');
-    tl.setAttribute('font-weight','500'); ap(tl);
-  }
+  // Hintergrundbänder (zuerst, damit Punkte darüber liegen)
+  vlist.forEach((v, vi) => {
+    const fretsF = v.frets.filter(f => f > 0);
+    if (!fretsF.length) return;
+    const lo = Math.min(...fretsF), hi = Math.max(...fretsF);
+    const hx1 = L+(lo-1)*fW, hx2 = L+hi*fW;
+    svg.insertBefore(
+      mk('rect', {x:hx1, y:T-4, width:hx2-hx1, height:(SC-1)*sH+8,
+        fill:BAND_COLORS[vi], rx:4, opacity:0.65}),
+      svg.firstChild
+    );
+    ap(tx(String(vi+1), (hx1+hx2)/2, T-6, 9, '#999', 'middle'));
+  });
+
+  // Punkte aller Lagen
+  vlist.forEach((v, vi) => {
+    for (let i = 0; i < 4; i++) {
+      const row  = grp.rows[i];
+      const fret = v.frets[i];
+      const slot = v.slots[i];
+      const iv   = chord.ivs[slot];
+      const c    = INV_COLORS[slot];
+      const cx   = cxOf(fret);
+      const cy   = T + row*sH;
+      if (fret === 0) {
+        // Offene Saite: Hohlring
+        ap(mk('circle', {cx, cy, r:7, fill:'white', stroke:c.stroke, 'stroke-width':2}));
+      } else {
+        ap(mk('circle', {cx, cy, r:8, fill:c.fill, stroke:c.stroke,
+          'stroke-width': slot===0 ? 2.8 : 1.5}));
+        let lbl;
+        if (curLabelMode === 'tone') {
+          const useFlat = FLAT_ROOTS.has(curGrundton) || iv.startsWith('b');
+          lbl = (useFlat ? NOTES_FLAT : NOTES_SHARP)[(OPEN_SEMI[row]+fret)%12];
+        } else { lbl = ivDisp(iv); }
+        const fs = lbl.length>2 ? 7.5 : lbl.length>1 ? 8.5 : 9.5;
+        const tl = tx(lbl, cx, cy+3.5, fs, c.txt, 'middle');
+        tl.setAttribute('font-weight','500'); ap(tl);
+      }
+    }
+  });
 }
 
 // ── UI aufbauen ────────────────────────────────────────────────
@@ -721,12 +763,7 @@ function toggleAnzeige() {
   render();
 }
 function nav(dir) {
-  if (curMode === 'drop2') {
-    const vlist = getDrop2Voicings();
-    if (!vlist.length) return;
-    curDrop2Voicing = (curDrop2Voicing + dir + vlist.length) % vlist.length;
-    render(); return;
-  }
+  if (curMode === 'drop2') return;
   const valid = validShapeIndices();
   if (!valid.length) return;
   const pos = valid.indexOf(curShpIdx);
