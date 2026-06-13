@@ -542,22 +542,22 @@ function renderDrop2() {
     ap(tx(String(vi+1), (hx1+hx2)/2, T-6, 9, '#999', 'middle'));
   });
 
-  // Punkte aller Lagen
+  // Punkte aller Lagen – alle 4 Töne einer Lage gleiche Farbe
   vlist.forEach((v, vi) => {
+    const c = INV_COLORS[vi]; // Farbe nach Lage, nicht nach Akkordton-Rolle
     for (let i = 0; i < 4; i++) {
       const row  = grp.rows[i];
       const fret = v.frets[i];
       const slot = v.slots[i];
       const iv   = chord.ivs[slot];
-      const c    = INV_COLORS[slot];
       const cx   = cxOf(fret);
       const cy   = T + row*sH;
+      const isRoot = slot === 0;
       if (fret === 0) {
-        // Offene Saite: Hohlring
         ap(mk('circle', {cx, cy, r:7, fill:'white', stroke:c.stroke, 'stroke-width':2}));
       } else {
         ap(mk('circle', {cx, cy, r:8, fill:c.fill, stroke:c.stroke,
-          'stroke-width': slot===0 ? 2.8 : 1.5}));
+          'stroke-width': isRoot ? 2.8 : 1.5}));
         let lbl;
         if (curLabelMode === 'tone') {
           const useFlat = FLAT_ROOTS.has(curGrundton) || iv.startsWith('b');
@@ -580,8 +580,7 @@ function buildLegend() {
   CHORD_TYPES[curChord].ivs.forEach((iv, i) => {
     const div = document.createElement('div'); div.className = 'legend-item';
     const dot = document.createElement('div');
-    // Drop-2: alle 4 Töne farbig; Griffbild: nur aktive Umkehrung farbig
-    const active = curMode === 'drop2' ? true : (i === curInversion);
+    const active = i === curInversion && curMode === 'griffbild';
     dot.className = 'legend-dot' + (active ? ' ' + dotCls[i] : '');
     div.appendChild(dot);
     const sp = document.createElement('span');
