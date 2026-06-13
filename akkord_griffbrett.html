@@ -219,7 +219,10 @@
     </div>
 
     <div class="ctrl-div-v"></div>
-    <button class="nav-btn" id="mode-btn" onclick="toggleMode()" style="font-size:12px;font-weight:600;min-width:90px">Akkordbild</button>
+    <div class="btn-stack">
+      <button class="nav-btn" id="mode-btn" onclick="toggleMode()" style="font-size:12px;font-weight:600;min-width:90px">Akkordbild</button>
+      <button class="nav-btn" id="droptype-btn" onclick="toggleDropType()" title="Umschalten Drop 2 / Drop 3" style="font-size:12px;font-weight:600;min-width:90px;display:none">Drop 2</button>
+    </div>
 
   </div>
 
@@ -348,6 +351,18 @@ const DROP2_GRPS = [
   { label: 'A–D–G–H', badge: 'Mitte', rows: [4, 3, 2, 1] },
   { label: 'D–G–H–E', badge: 'hoch',  rows: [3, 2, 1, 0] },
 ];
+// Drop-3: Bass allein, eine Saite übersprungen (gemutet), darüber 3 benachbarte
+const DROP3_GRPS = [
+  { label: 'E–⊗–D–G–H', badge: 'tief', rows: [5, 3, 2, 1], mute: 4 },
+  { label: 'A–⊗–G–H–E', badge: 'hoch', rows: [4, 2, 1, 0], mute: 3 },
+];
+function dropGrps()  { return curDropType === 3 ? DROP3_GRPS : DROP2_GRPS; }
+// Slot-Reihenfolge Bass→hoch je Drop-Typ und Start-Slot
+function dropSlotOrder(dropType, s) {
+  return dropType === 3
+    ? [s, (s+3)%4, (s+1)%4, (s+2)%4]   // Drop-3: Root, b7, 3, 5
+    : [s, (s+2)%4, (s+3)%4, (s+1)%4];  // Drop-2: Root, 5, b7, 3
+}
 
 // ── Navigations-Tabellen ───────────────────────────────────────
 const GRUNDTON_ORDER = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
@@ -367,7 +382,8 @@ let curGrundton     = 'C';
 let curInversion    = 0;
 let curLabelMode    = 'iv';
 let curMode         = 'griffbild'; // 'griffbild' | 'drop2'
-let curDrop2Grp     = 0;           // index in DROP2_GRPS
+let curDropType     = 2;           // 2 oder 3
+let curDrop2Grp     = 0;           // index in aktueller Drop-Gruppenliste
 let curDrop2Voicing = 0;
 let curCtxVoicings  = new Set();   // aktive Kontext-Voicings im Griffbild (0–3)
 
@@ -471,14 +487,15 @@ function d2shift(prev, rows, chordSemis, rootSemi) {
 }
 
 // Alle 4 Startslots probieren; Startslot mit meisten Lagen & niedrigstem Position wählen
-function getDrop2Voicings(d2GrpIdx) {
-  const grp   = DROP2_GRPS[d2GrpIdx !== undefined ? d2GrpIdx : curDrop2Grp];
+function getDropVoicings(dropType, grpIdx) {
+  const grps  = dropType === 3 ? DROP3_GRPS : DROP2_GRPS;
+  const grp   = grps[grpIdx];
   const chord = CHORD_TYPES[curChord];
   const root  = NOTES_SEMI[curGrundton];
   let bestList = [], bestScore = Infinity;
 
   for (let s = 0; s < 4; s++) {
-    const slotOrd = [s, (s+2)%4, (s+3)%4, (s+1)%4];
+    const slotOrd = dropSlotOrder(dropType, s);
     const v0 = d2v0(root, chord.semis, grp.rows, slotOrd);
     if (!v0) continue;
     const list = [v0];
@@ -495,9 +512,9 @@ function getDrop2Voicings(d2GrpIdx) {
 }
 
 function renderDrop2() {
-  const grp   = DROP2_GRPS[curDrop2Grp];
+  const grp   = dropGrps()[curDrop2Grp];
   const chord = CHORD_TYPES[curChord];
-  const vlist = getDrop2Voicings();
+  const vlist = getDropVoicings(curDropType, curDrop2Grp);
 
   document.getElementById('badge').textContent = vlist.length ? `${vlist.length} Lagen` : '–';
 
@@ -508,10 +525,10 @@ function renderDrop2() {
       return (isFlat ? NOTES_FLAT : NOTES_SHARP)[n] + ' (' + ivDisp(chord.ivs[v.slots[0]]) + ')';
     });
     document.getElementById('akkord-desc').textContent =
-      `${chord.name} · ${curGrundton} · ${grp.label} · ${bassNotes.join(' – ')}`;
+      `Drop ${curDropType} · ${chord.name} · ${curGrundton} · ${grp.label} · ${bassNotes.join(' – ')}`;
   } else {
     document.getElementById('akkord-desc').textContent =
-      `Keine Lagen für ${curGrundton} ${chord.name} auf ${grp.label}`;
+      `Keine Drop-${curDropType}-Lagen für ${curGrundton} ${chord.name} auf ${grp.label}`;
   }
 
   // SVG – Bund 0 bis D2_MF, breiterer linker Rand für offene Saiten
@@ -550,6 +567,12 @@ function renderDrop2() {
   for (let s = 0; s < SC; s++) {
     const t = tx(OPEN_STR[s], L-24, T+s*sH+3, 9, '#666', 'middle');
     t.setAttribute('font-weight','600'); ap(t);
+  }
+
+  // Gemutete Saite (Drop-3): durchgehendes ✕ am Sattel markieren
+  if (grp.mute !== undefined) {
+    const mt = tx('✕', L-14, T+grp.mute*sH+4, 11, '#c33', 'middle');
+    mt.setAttribute('font-weight','700'); ap(mt);
   }
 
   if (!vlist.length) return;
@@ -734,7 +757,7 @@ function render() {
   if (curCtxVoicings.size > 0) {
     const d2GrpIdx = GRPD2MAP[curGroup];
     const grp2 = DROP2_GRPS[d2GrpIdx];
-    const vlist2 = getDrop2Voicings(d2GrpIdx);
+    const vlist2 = getDropVoicings(2, d2GrpIdx);
     const chord2 = CHORD_TYPES[curChord];
     const CTX = {fill:'#dce7f0', stroke:'#7a94b0', txt:'#3d5878'};
     vlist2.forEach((v, vi) => {
@@ -828,9 +851,10 @@ function navChord(dir) {
 }
 function navSaite(dir) {
   if (curMode === 'drop2') {
-    curDrop2Grp = (curDrop2Grp + dir + DROP2_GRPS.length) % DROP2_GRPS.length;
+    const grps = dropGrps();
+    curDrop2Grp = (curDrop2Grp + dir + grps.length) % grps.length;
     curDrop2Voicing = 0;
-    document.getElementById('saite-badge').textContent = DROP2_GRPS[curDrop2Grp].badge;
+    document.getElementById('saite-badge').textContent = grps[curDrop2Grp].badge;
     render(); return;
   }
   const i = GROUP_ORDER.indexOf(curGroup);
@@ -862,13 +886,23 @@ function toggleCtxVoicing(vi) {
   render();
 }
 
+function toggleDropType() {
+  curDropType = curDropType === 2 ? 3 : 2;
+  const grps = dropGrps();
+  if (curDrop2Grp >= grps.length) curDrop2Grp = grps.length - 1;
+  document.getElementById('droptype-btn').textContent = 'Drop ' + curDropType;
+  document.getElementById('saite-badge').textContent  = grps[curDrop2Grp].badge;
+  render();
+}
+
 function toggleMode() {
   curMode = curMode === 'griffbild' ? 'drop2' : 'griffbild';
   const isD2 = curMode === 'drop2';
   document.getElementById('mode-btn').textContent        = isD2 ? 'Griffbild' : 'Akkordbild';
   document.getElementById('umkehrung-row').style.display = isD2 ? 'none' : '';
   document.getElementById('ctx-row').style.display       = isD2 ? 'none' : '';
-  document.getElementById('saite-badge').textContent     = isD2 ? DROP2_GRPS[curDrop2Grp].badge : GROUP_LABELS[curGroup];
+  document.getElementById('droptype-btn').style.display  = isD2 ? '' : 'none';
+  document.getElementById('saite-badge').textContent     = isD2 ? dropGrps()[curDrop2Grp].badge : GROUP_LABELS[curGroup];
   if (isD2) curDrop2Voicing = 0;
   buildLegend(); render();
 }
