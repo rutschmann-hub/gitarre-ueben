@@ -489,29 +489,32 @@ function d2shift(prev, rows, chordSemis, rootSemi) {
   return { frets, slots, midis };
 }
 
-// Alle 4 Startslots probieren; Startslot mit meisten Lagen & niedrigstem Position wählen
+// Tiefstmögliche Lage suchen, dann diatonisch hochschieben bis Bund D2_MF
+// überschritten würde – zeigt so auch Oktav-Wiederholungen bis zum 15. Bund
 function getDropVoicings(dropType, grpIdx) {
   const grps  = dropType === 3 ? DROP3_GRPS : DROP2_GRPS;
   const grp   = grps[grpIdx];
   const chord = CHORD_TYPES[curChord];
   const root  = NOTES_SEMI[curGrundton];
-  let bestList = [], bestScore = Infinity;
 
+  // Tiefste Startlage über alle 4 Start-Slots
+  let start = null, startMax = Infinity;
   for (let s = 0; s < 4; s++) {
-    const slotOrd = dropSlotOrder(dropType, s);
-    const v0 = d2v0(root, chord.semis, grp.rows, slotOrd);
+    const v0 = d2v0(root, chord.semis, grp.rows, dropSlotOrder(dropType, s));
     if (!v0) continue;
-    const list = [v0];
-    for (let k = 1; k < 4; k++) {
-      const v = d2shift(list[k-1], grp.rows, chord.semis, root);
-      if (!v) break;
-      list.push(v);
-    }
-    // Priorität: mehr Lagen > niedrigerer höchster Bund in erster Lage
-    const score = (4 - list.length) * 100 + Math.max(...v0.frets);
-    if (score < bestScore) { bestScore = score; bestList = list; }
+    const mx = Math.max(...v0.frets);
+    if (mx < startMax) { startMax = mx; start = v0; }
   }
-  return bestList;
+  if (!start) return [];
+
+  // Aufwärts schichten, bis der nächste Akkord nicht mehr passt (max. 8 Lagen)
+  const list = [start];
+  while (list.length < 8) {
+    const v = d2shift(list[list.length - 1], grp.rows, chord.semis, root);
+    if (!v) break;
+    list.push(v);
+  }
+  return list;
 }
 
 function renderDrop2() {
@@ -599,15 +602,15 @@ function renderDrop2() {
     const hx1 = L+(lo-1)*fW, hx2 = L+hi*fW;
     svg.insertBefore(
       mk('rect', {x:hx1, y:T-4, width:hx2-hx1, height:(SC-1)*sH+8,
-        fill:BAND_COLORS[vi], rx:4, opacity:0.65}),
+        fill:BAND_COLORS[vi % 4], rx:4, opacity:0.65}),
       svg.firstChild
     );
-    ap(tx(String(vi+1), (hx1+hx2)/2, T-6, 9, '#999', 'middle'));
+    ap(tx(String((vi % 4)+1), (hx1+hx2)/2, T-6, 9, '#999', 'middle'));
   });
 
   // Punkte aller Lagen – alle 4 Töne einer Lage gleiche Farbe
   vlist.forEach((v, vi) => {
-    const c = INV_COLORS[vi]; // Farbe nach Lage, nicht nach Akkordton-Rolle
+    const c = INV_COLORS[vi % 4]; // zyklisch – Oktav-Wiederholung = gleiche Farbe
     for (let i = 0; i < 4; i++) {
       const row  = grp.rows[i];
       const fret = v.frets[i];
