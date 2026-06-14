@@ -335,7 +335,7 @@
 
     <!-- Griffbrett Widget -->
     <div class="griffbrett-widget-wrap">
-      <iframe id="griffbrett-iframe" src="akkord_griffbrett.html" height="400"></iframe>
+      <iframe id="griffbrett-iframe" src="akkord_griffbrett.html" height="450"></iframe>
     </div>
 
     <!-- Akkord name -->
@@ -678,7 +678,7 @@ function markiereGeuebt() {
   const comboIdx = zIdx * 24 + pfIdx;
 
   const FORT_KEY = 'gitueben_fortschritt';
-  const AKKORDS  = ['dom7','maj7','moll7','moll7b5'];
+  const AKKORDS  = ['dom7','maj7','moll7','moll7b5','dim7'];
   let daten = {};
   AKKORDS.forEach(k => { daten[k] = Array.from({length:576}, () => ({count:0,zeit:''})); });
   try {
@@ -840,6 +840,9 @@ window.addEventListener('message', (e) => {
     document.getElementById('grundton').value = e.data.grundtonUpdate;
     if (typeof letzteZiffern !== 'undefined' && letzteZiffern) zeigeAkkord(letzteZiffern);
     speichereState();
+  }
+  if (e.data && typeof e.data.griffbrettHeight === 'number') {
+    document.getElementById('griffbrett-iframe').style.height = e.data.griffbrettHeight + 'px';
   }
 });
 

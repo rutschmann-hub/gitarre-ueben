@@ -1076,6 +1076,20 @@ buildShpSel();
 render();
 // Bei OS-Theme-Wechsel Griffbrett neu zeichnen (Dark-Mode-Farben)
 DARK_MQ.addEventListener('change', render);
+
+// Eigene Höhe ans Elternfenster melden, damit das iframe ohne Scrollbalken passt
+// (das SVG skaliert mit der Breite, daher ändert sich die Höhe responsiv)
+function postHeight() {
+  if (window.parent === window) return;
+  const h = Math.ceil(document.body.scrollHeight) + 2;
+  window.parent.postMessage({ griffbrettHeight: h }, '*');
+}
+if (window.parent !== window) {
+  if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+  window.addEventListener('resize', postHeight);
+  window.addEventListener('load', postHeight);
+  postHeight();
+}
 </script>
 </body>
 </html>
