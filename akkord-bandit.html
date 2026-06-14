@@ -107,7 +107,7 @@
     }
 
     /* ─── Räder ────────────────────────────────────────── */
-    .raeder-block { display: flex; gap: 0; align-items: stretch; justify-content: center; }
+    .raeder-block { display: flex; flex-wrap: wrap; gap: 1.25rem 1.5rem; align-items: stretch; justify-content: center; }
     .rad-gruppe { display: flex; flex-direction: column; gap: 10px; }
     .rad-gruppe-titel {
       font-size: 0.72rem;
@@ -116,12 +116,12 @@
       text-transform: uppercase;
       letter-spacing: 0.1em;
     }
-    .raeder-reihe { display: flex; gap: 10px; }
+    .raeder-reihe { display: flex; gap: 8px; }
     .rad-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .rad-lbl { font-size: 0.65rem; color: var(--text3); }
 
     .rad-fenster {
-      width: 88px;
+      width: 78px;
       height: 84px;
       border: 1.5px solid var(--border2);
       border-radius: 8px;
@@ -154,9 +154,9 @@
     }
 
     /* ─── Ton-Pills ────────────────────────────────────── */
-    .ton-pills-reihe { display: flex; gap: 10px; justify-content: center; width: 100%; }
+    .ton-pills-reihe { display: flex; gap: 8px; justify-content: center; width: 100%; }
     .ton-pill {
-      width: 88px;
+      width: 78px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -177,6 +177,34 @@
       align-self: stretch;
       margin: 0 0.75rem;
     }
+
+    /* ─── Notations-Kästchen (Pfeile pro) ──────────────── */
+    .notation-reihe { display: flex; gap: 8px; margin-top: 6px; }
+    .notation-box {
+      width: 78px; height: 54px; border: 1.5px solid var(--border2);
+      border-radius: 8px; background: var(--surface); display: flex;
+      align-items: center; justify-content: center; color: var(--text);
+      overflow: hidden; flex-shrink: 0;
+    }
+    .notation-box.leer { border-style: dashed; opacity: 0.3; }
+
+    /* ─── Silben-Kästchen (Pfeile pro) ─────────────────── */
+    .silben-reihe { display: flex; gap: 8px; margin-top: 4px; }
+    .silben-box {
+      width: 78px; min-height: 34px; border: 1.5px solid var(--border2);
+      border-radius: 8px; background: var(--surface2); display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0;
+      font-size: 0.7rem; font-family: 'DM Mono', monospace; color: var(--text2);
+      text-align: center; padding: 4px 5px; line-height: 1.3;
+    }
+    .silben-box.leer { border-style: dashed; opacity: 0.3; }
+    @font-face {
+      font-family: 'Bravura';
+      src: url('assets/fonts/music-rests.woff2') format('woff2');
+      font-display: swap;
+    }
+    .nrest { font-family: 'Bravura', 'Apple Symbols', 'Segoe UI Symbol', serif; }
+    .pro-badge { font-size: 0.65rem; color: var(--accent); letter-spacing: 0; }
 
     /* ─── Buttons ──────────────────────────────────────── */
     .drehen-btn {
@@ -266,7 +294,6 @@
     <span class="header-title">Akkord Bandit</span>
     <div style="display:flex;gap:4px;align-items:center">
       <a class="btn btn-ghost btn-sm" style="opacity:0.45;pointer-events:none">🎲 Bandit</a>
-      <a class="btn btn-ghost btn-sm" href="akkord-bandit-pro.html">🎯 Pro</a>
       <a class="btn btn-ghost btn-sm" href="fortschritt.html">✅ Fortschritt</a>
     </div>
   </div>
@@ -322,9 +349,7 @@
           </div>
         </div>
 
-        <div class="trennlinie"></div>
-
-        <!-- Pfeile -->
+        <!-- Pfeile (2er) -->
         <div class="rad-gruppe">
           <div class="rad-gruppe-titel">Pfeile</div>
           <div class="raeder-reihe" id="raeder-b"></div>
@@ -334,6 +359,17 @@
           </div>
         </div>
 
+        <!-- Pfeile pro (bis 3er + Notation + Silben) -->
+        <div class="rad-gruppe">
+          <div class="rad-gruppe-titel">Pfeile <span class="pro-badge">pro</span></div>
+          <div class="raeder-reihe" id="raeder-c"></div>
+          <div class="notation-reihe" id="notation-c"></div>
+          <div class="silben-reihe" id="silben-c"></div>
+          <div style="margin-top:auto;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="drehen-btn" id="btn-c" onclick="drehenEinzel('c')">▶ Pfeile pro</button>
+            <button class="drehen-btn beide" id="btn-geuebt-c" onclick="markiereGeuebtC()" disabled>✓ Geübt</button>
+          </div>
+        </div>
 
       </div>
 
@@ -341,6 +377,7 @@
       <div class="zaehler-reihe">
         <div class="zaehler">Ziffern: <span id="zaehler-a">0</span>/24</div>
         <div class="zaehler">Pfeile: <span id="zaehler-b">0</span>/24</div>
+        <div class="zaehler">Pfeile pro: <span id="zaehler-c">0</span></div>
         <div class="neu-gemischt" id="neu-gemischt-a"></div>
         <div class="neu-gemischt" id="neu-gemischt-b"></div>
       </div>
@@ -361,6 +398,14 @@ const akkordTypen = {
 
 const ziffernSymbole = ['1','3','5','7'];
 const pfeilSymbole   = ['↑↑','↓↓','↑↓','↓↑'];
+// Pfeile pro (Block C): erweiterte Symbole bis 3 Pfeile + Rhythmus-Silben
+const pfeilSymboleC  = ['↑','↓','↑↑','↓↓','↑↓','↓↑','↓↓↑','↓↑↑','↓↑↓','↑↓↑','↓↓↓','↑↑↑'];
+const SILBEN = [
+  { 1: 'Chamä',     2: 'Antilo',           3: 'Es gibt ein'          },
+  { 1: 'Rhino',     2: 'Salaman',          3: 'das nennt sich Pferd' },
+  { 1: 'die fahrn', 2: 'stehn im Dschung', 3: 'es ist so schön'      },
+  { 1: 'nach Hel',  2: 'beieinan',         3: 'ich habs so gern'     },
+];
 
 function allePerms(arr) {
   const res = [];
@@ -408,6 +453,8 @@ let laeuft = false;
 let aktuellerTyp  = 'dom7';
 let letzteZiffern = null;
 let letztePfeile  = null;
+let gezogenC      = 0;
+let letztePfeileC = null;
 
 // ── State-Persistenz ─────────────────────────────────────
 const BANDIT_STATE_KEY = 'gitueben_bandit_state';
@@ -420,9 +467,11 @@ function speichereState() {
       aktiveStart,
       gezogenA,
       gezogenB,
+      gezogenC,
       stapelB,
       letzteZiffern,
       letztePfeile,
+      letztePfeileC,
     }));
   } catch(e) {}
 }
@@ -443,6 +492,8 @@ function ladeState() {
     if (Array.isArray(s.stapelB) && s.stapelB.length === allePermsB.length) stapelB = s.stapelB;
     if (Array.isArray(s.letzteZiffern)) letzteZiffern = s.letzteZiffern;
     if (Array.isArray(s.letztePfeile))  letztePfeile  = s.letztePfeile;
+    if (typeof s.gezogenC === 'number')  gezogenC = s.gezogenC;
+    if (Array.isArray(s.letztePfeileC) && s.letztePfeileC.every(p => pfeilSymboleC.includes(p))) letztePfeileC = s.letztePfeileC;
     // Grundton
     if (s.grundton) document.getElementById('grundton').value = s.grundton;
 
@@ -459,12 +510,19 @@ function ladeState() {
     // Zähler
     aktualisiereZaehler('a');
     aktualisiereZaehler('b');
+    aktualisiereZaehler('c');
 
     // Räder wiederherstellen
     if (letzteZiffern) animiereStrip('raeder-a', ziffernSymbole, letzteZiffern, () => zeigeAkkord(letzteZiffern));
     if (letztePfeile)  animiereStrip('raeder-b', pfeilSymbole,   letztePfeile,  () => {});
+    if (letztePfeileC) {
+      animiereStrip('raeder-c', pfeilSymboleC, letztePfeileC, () => {});
+      aktualisiereNotationC(letztePfeileC);
+      aktualisiereSilbenC(letztePfeileC);
+    }
 
     updateGeuebtBtn();
+    updateGeuebtBtnC();
   } catch(e) {}
 }
 
@@ -568,11 +626,11 @@ function animiereStrip(containerId, symbole, ziel, cb) {
 }
 
 function aktualisiereZaehler(which) {
-  document.getElementById('zaehler-' + which).textContent = which === 'a' ? gezogenA : gezogenB;
+  document.getElementById('zaehler-' + which).textContent = which === 'a' ? gezogenA : which === 'b' ? gezogenB : gezogenC;
 }
 
 function sperreButtons(an) {
-  document.querySelectorAll('.start-btn, .reset-btn, #btn-b').forEach(el => el.disabled = an);
+  document.querySelectorAll('.start-btn, .reset-btn, #btn-b, #btn-c').forEach(el => el.disabled = an);
 }
 
 function drehenEinzel(which) {
@@ -580,10 +638,13 @@ function drehenEinzel(which) {
   laeuft = true; sperreButtons(true);
   if (which === 'a') {
     const ziel = naechsteA(); aktualisiereZaehler('a');
-    animiereStrip('raeder-a', ziffernSymbole, ziel, () => { letzteZiffern = ziel; zeigeAkkord(ziel); laeuft = false; sperreButtons(false); updateGeuebtBtn(); speichereState(); });
-  } else {
+    animiereStrip('raeder-a', ziffernSymbole, ziel, () => { letzteZiffern = ziel; zeigeAkkord(ziel); laeuft = false; sperreButtons(false); updateGeuebtBtn(); updateGeuebtBtnC(); speichereState(); });
+  } else if (which === 'b') {
     const ziel = naechsteB(); aktualisiereZaehler('b');
     animiereStrip('raeder-b', pfeilSymbole, ziel, () => { letztePfeile = ziel; laeuft = false; sperreButtons(false); updateGeuebtBtn(); speichereState(); });
+  } else {
+    const ziel = zieheZufaelligePfeileC(); gezogenC++; aktualisiereZaehler('c');
+    animiereStrip('raeder-c', pfeilSymboleC, ziel, () => { letztePfeileC = ziel; aktualisiereNotationC(ziel); aktualisiereSilbenC(ziel); laeuft = false; sperreButtons(false); updateGeuebtBtnC(); speichereState(); });
   }
 }
 
@@ -648,9 +709,117 @@ function syncGriffbrett() {
   }, '*');
 }
 
+// ── Pfeile pro (Block C): Zufallsziehung, Räder, Notation, Silben, Geübt ──
+function zieheZufaelligePfeileC() {
+  const pool = [...pfeilSymboleC];
+  const result = [];
+  for (let i = 0; i < 4; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    result.push(pool.splice(idx, 1)[0]);
+  }
+  return result;
+}
+
+// Räder mit fester Stellenzahl (jede Stelle zeigt alle Symbole)
+function erstelleRadN(containerId, positionen, symbole) {
+  const container = document.getElementById(containerId);
+  for (let i = 0; i < positionen; i++) {
+    const wrap = document.createElement('div'); wrap.className = 'rad-wrap';
+    const lbl  = document.createElement('div'); lbl.className  = 'rad-lbl'; lbl.textContent = (i + 1) + '.';
+    const fenster = document.createElement('div'); fenster.className = 'rad-fenster';
+    const strip   = document.createElement('div'); strip.className   = 'rad-strip'; strip.id = containerId + '-strip-' + i;
+    const hl      = document.createElement('div'); hl.className      = 'highlight';
+    symbole.forEach(s => { const div = document.createElement('div'); div.className = 'rad-zelle'; div.textContent = s; strip.appendChild(div); });
+    fenster.appendChild(strip); fenster.appendChild(hl);
+    wrap.appendChild(lbl); wrap.appendChild(fenster);
+    container.appendChild(wrap);
+    strip.style.transform = 'translateY(0px)';
+  }
+}
+
+// Rhythmische Notation: 1 Kästchen = 1 Viertel; len 1/2/3 = Pause(n) + 1/2/3 Sechzehntel
+function notationSVG(symbol) {
+  const ink = 'currentColor';
+  const nh = (cx) => `<ellipse cx="${cx}" cy="36" rx="5" ry="3.5" transform="rotate(-15 ${cx} 36)" fill="${ink}"/>`;
+  const st = (cx) => `<line x1="${cx+4.5}" y1="36" x2="${cx+4.5}" y2="14" stroke="${ink}" stroke-width="1.5"/>`;
+  const fl = (cx) => {
+    const x = cx + 4.5;
+    return `<path d="M ${x},14 C ${x+11},17 ${x+11},26 ${x+1},29" stroke="${ink}" stroke-width="1.5" fill="none" stroke-linecap="round"/>` +
+           `<path d="M ${x},20 C ${x+11},23 ${x+11},32 ${x+1},35" stroke="${ink}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+  };
+  const bm = (cx1, cx2) =>
+    `<rect x="${cx1+4.5}" y="14"  width="${cx2-cx1}" height="3.5" fill="${ink}"/>` +
+    `<rect x="${cx1+4.5}" y="20"  width="${cx2-cx1}" height="3.5" fill="${ink}"/>`;
+  const er = (x, sz=26) => `<text x="${x}" y="32" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13E}</text>`;
+  const sr = (x, sz=26) => `<text x="${x}" y="32" font-size="${sz}" class="nrest" fill="${ink}">\u{1D13F}</text>`;
+  let inner = '';
+  const len = symbol.length;
+  if (len === 1) {
+    inner = er(2, 22) + sr(22, 22) + nh(52) + st(52) + fl(52);
+  } else if (len === 2) {
+    inner = er(4) + nh(32) + st(32) + nh(56) + st(56) + bm(32, 56);
+  } else {
+    inner = sr(4) + nh(25) + st(25) + nh(45) + st(45) + nh(64) + st(64) + bm(25, 64);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 54" style="display:block;width:100%;height:100%">${inner}</svg>`;
+}
+
+function erstelleNotationsBoxenC() {
+  const container = document.getElementById('notation-c');
+  container.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const box = document.createElement('div'); box.className = 'notation-box leer'; box.id = 'notation-box-' + i;
+    container.appendChild(box);
+  }
+}
+function aktualisiereNotationC(pfeile) {
+  pfeile.forEach((symbol, i) => {
+    const box = document.getElementById('notation-box-' + i);
+    if (!box) return;
+    box.className = 'notation-box';
+    box.innerHTML = notationSVG(symbol);
+  });
+}
+
+function erstelleSilbenBoxenC() {
+  const container = document.getElementById('silben-c');
+  container.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const box = document.createElement('div'); box.className = 'silben-box leer'; box.id = 'silben-box-' + i;
+    container.appendChild(box);
+  }
+}
+function aktualisiereSilbenC(pfeile) {
+  pfeile.forEach((symbol, i) => {
+    const box = document.getElementById('silben-box-' + i);
+    if (!box) return;
+    box.className = 'silben-box';
+    box.textContent = SILBEN[i][symbol.length];
+  });
+}
+
+function updateGeuebtBtnC() {
+  document.getElementById('btn-geuebt-c').disabled = !(letzteZiffern && letztePfeileC);
+}
+function markiereGeuebtC() {
+  if (!letzteZiffern || !letztePfeileC) return;
+  const PRO_KEY = 'gitueben_pro_geuebt';
+  let zaehler = {};
+  try { zaehler = JSON.parse(localStorage.getItem(PRO_KEY) || '{}'); } catch(e) {}
+  zaehler[aktuellerTyp] = (zaehler[aktuellerTyp] || 0) + 1;
+  localStorage.setItem(PRO_KEY, JSON.stringify(zaehler));
+  const btn = document.getElementById('btn-geuebt-c');
+  btn.textContent = '✓ Gespeichert';
+  btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
+  setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
+}
+
 // ── Init ─────────────────────────────────────────────────
 erstelleRad('raeder-a', ziffernSymbole);
 erstelleRad('raeder-b', pfeilSymbole);
+erstelleRadN('raeder-c', 4, pfeilSymboleC);
+erstelleNotationsBoxenC();
+erstelleSilbenBoxenC();
 erstellePills();
 
 // Griffbrett-iframe: beim Laden initialen Zustand schicken
