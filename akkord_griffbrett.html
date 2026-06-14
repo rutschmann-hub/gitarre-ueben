@@ -293,7 +293,22 @@
 const FC         = 18;   // Anzahl Bünde
 const OPEN_STR   = ['E','H','G','D','A','E'];  // SVG row 0=hoch-E … 5=tief-E
 const NOTES_FLAT  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
-const NOTES_SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+// Buchstabengetreue Akkordton-Schreibweise: Tonbuchstabe folgt dem Intervall-Grad
+// (z.B. C7-Septime = B♭, nicht A#; Db7-Septime = C♭). Doppelvorzeichen (z.B. dim7-bb7)
+// werden zur praktischen Enharmonik aufgelöst.
+const NOTE_LETTERS = ['C','D','E','F','G','A','B'];
+const LETTER_SEMI  = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
+function spellNote(rootName, pitchClass, ivStr) {
+  const deg = parseInt(ivStr.replace(/b/g, ''), 10);            // 1,3,5,7
+  const li  = NOTE_LETTERS.indexOf(rootName[0]);
+  const tl  = NOTE_LETTERS[(li + (deg - 1)) % 7];               // Zielbuchstabe nach Grad
+  let diff = pitchClass - LETTER_SEMI[tl];
+  diff = ((diff % 12) + 12) % 12;
+  if (diff > 6) diff -= 12;
+  if (diff < -1 || diff > 1) return NOTES_FLAT[pitchClass].replace('b', '♭'); // kein Doppelvorzeichen
+  return tl + (diff === -1 ? '♭' : diff === 1 ? '♯' : '');
+}
 
 // Voicing-/Umkehrungsfarben – zentral, von Drop- und Griffbild-Rendering genutzt
 const VOICING_COLORS = [
@@ -310,8 +325,6 @@ function fbColors() {
     ? {nut:'#9a9a9a', fret:'#aaa', string:'#9a8f86', inlay:'#5a534d', fretNum:'#888', strLbl:'#bbb', mute:'#ff6b6b', num:'#bbb', bandOp:0.30, hlOp:0.32}
     : {nut:'#555',    fret:'#888', string:'#444',    inlay:'#ccc',    fretNum:'#aaa', strLbl:'#666', mute:'#c33',    num:'#999', bandOp:0.65, hlOp:0.70};
 }
-// Wurzeltöne mit B-Vorzeichen → b-Notation; alle anderen → Kreuz-Notation
-const FLAT_ROOTS  = new Set(['F','Bb','Eb','Ab','Db','Gb']);
 const OPEN_SEMI  = [4, 11, 7, 2, 9, 4];  // Halbtonabstand der leeren Saite von C
 const NOTES_SEMI = {C:0,Db:1,D:2,Eb:3,E:4,F:5,Gb:6,G:7,Ab:8,A:9,Bb:10,B:11};
 
@@ -592,10 +605,9 @@ function renderDrop2() {
   document.getElementById('badge').textContent = vlist.length ? `${vlist.length} Lagen` : '–';
 
   if (vlist.length) {
-    const isFlat = FLAT_ROOTS.has(curGrundton);
     const bassNotes = vlist.map(v => {
       const n = (NOTES_SEMI[curGrundton] + chord.semis[v.slots[0]]) % 12;
-      return (isFlat ? NOTES_FLAT : NOTES_SHARP)[n] + ' (' + ivDisp(chord.ivs[v.slots[0]]) + ')';
+      return spellNote(curGrundton, n, chord.ivs[v.slots[0]]) + ' (' + ivDisp(chord.ivs[v.slots[0]]) + ')';
     });
     document.getElementById('akkord-desc').textContent =
       `Drop ${curDropType} · ${chord.name} · ${curGrundton} · ${grp.label} · ${bassNotes.join(' – ')}`;
@@ -686,8 +698,7 @@ function renderDrop2() {
           'stroke-width': isRoot ? 2.8 : 1.5}));
         let lbl;
         if (curLabelMode === 'tone') {
-          const useFlat = FLAT_ROOTS.has(curGrundton) || iv.startsWith('b');
-          lbl = (useFlat ? NOTES_FLAT : NOTES_SHARP)[(OPEN_SEMI[row]+fret)%12];
+          lbl = spellNote(curGrundton, (OPEN_SEMI[row]+fret)%12, iv);
         } else { lbl = ivDisp(iv); }
         const fs = lbl.length>2 ? 7.5 : lbl.length>1 ? 8.5 : 9.5;
         const tl = tx(lbl, cx, cy+3.5, fs, c.txt, 'middle');
@@ -835,8 +846,7 @@ function render() {
         let lbl;
         if (curLabelMode === 'tone') {
           const iv = chord2.ivs[v.slots[i]];
-          const useFlat = FLAT_ROOTS.has(curGrundton) || iv.startsWith('b');
-          lbl = (useFlat ? NOTES_FLAT : NOTES_SHARP)[(OPEN_SEMI[grp2.rows[i]] + fret) % 12];
+          lbl = spellNote(curGrundton, (OPEN_SEMI[grp2.rows[i]] + fret) % 12, iv);
         } else {
           lbl = ivDisp(chord2.ivs[v.slots[i]]);
         }
@@ -856,8 +866,7 @@ function render() {
       stroke:dotStroke, 'stroke-width': isRoot ? 2.8 : 1.5}));
     let lbl;
     if (labelMode === 'tone') {
-      const useFlatArr = FLAT_ROOTS.has(curGrundton) || d.iv.startsWith('b');
-      lbl = (useFlatArr ? NOTES_FLAT : NOTES_SHARP)[(OPEN_SEMI[d.s] + d.f) % 12];
+      lbl = spellNote(curGrundton, (OPEN_SEMI[d.s] + d.f) % 12, d.iv);
     } else {
       lbl = ivDisp(d.iv);
     }
