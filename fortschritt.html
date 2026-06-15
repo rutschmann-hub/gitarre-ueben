@@ -282,6 +282,19 @@ function zeitstempel() {
   return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
+// "14.06. 16:35" → vergleichbarer Zeitwert (ms) für chronologische Sortierung.
+// Das Format hat kein Jahr; liegt das Datum in der Zukunft, war es im Vorjahr.
+// Leerer/ungültiger Wert → NaN.
+function zeitWert(z) {
+  if (!z) return NaN;
+  const m = z.match(/(\d{1,2})\.(\d{1,2})\.\s*(\d{1,2}):(\d{2})/);
+  if (!m) return NaN;
+  const now = new Date();
+  let t = new Date(now.getFullYear(), +m[2]-1, +m[1], +m[3], +m[4]).getTime();
+  if (t > now.getTime() + 86400000) t = new Date(now.getFullYear()-1, +m[2]-1, +m[1], +m[3], +m[4]).getTime();
+  return t;
+}
+
 const STARTDATEN_KEY = 'gitueben_fortschritt_start';
 function getStartDaten() {
   try { return JSON.parse(localStorage.getItem(STARTDATEN_KEY)) || {}; } catch(e) { return {}; }
@@ -318,8 +331,8 @@ function getSortedOrder(key) {
       va = ZIFFERN_PERMS[Math.floor(a / 24)];
       vb = ZIFFERN_PERMS[Math.floor(b / 24)];
     } else {
-      va = daten[key][a].zeit || '￿';
-      vb = daten[key][b].zeit || '￿';
+      va = zeitWert(daten[key][a].zeit); if (isNaN(va)) va = Infinity; // ohne Datum ans Ende
+      vb = zeitWert(daten[key][b].zeit); if (isNaN(vb)) vb = Infinity;
     }
     if (va < vb) return -sortDir;
     if (va > vb) return  sortDir;
@@ -646,9 +659,12 @@ function renderVerlaufPanel() {
     total += curr;
     // Aktiver Durchlauf ist immer aktueller als Archiv → direkt überschreiben
     if (curr > 0) {
-      let latestZeit = null;
+      let latestZeit = null, bestT = -Infinity;
       daten[key].forEach(e => {
-        if (e.count > 0 && e.zeit && (!latestZeit || e.zeit > latestZeit)) latestZeit = e.zeit;
+        if (e.count > 0 && e.zeit) {
+          const t = zeitWert(e.zeit);
+          if (!isNaN(t) && t > bestT) { bestT = t; latestZeit = e.zeit; }
+        }
       });
       if (latestZeit) letztesDatum = latestZeit;
     }
