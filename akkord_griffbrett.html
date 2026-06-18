@@ -298,6 +298,9 @@
 const FC         = 18;   // Anzahl Bünde
 const OPEN_STR   = ['E','H','G','D','A','E'];  // SVG row 0=hoch-E … 5=tief-E
 const NOTES_FLAT  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const NOTE_NAMES_FLAT  = ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+const NOTE_NAMES_SHARP = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const ENHARMONIC_PCS   = new Set([1, 3, 6, 8, 10]);
 
 // Buchstabengetreue Akkordton-Schreibweise: Tonbuchstabe folgt dem Intervall-Grad
 // (z.B. C7-Septime = B♭, nicht A#; Db7-Septime = C♭). Doppelvorzeichen (z.B. dim7-bb7)
@@ -820,11 +823,18 @@ function render() {
   if (freeMode) {
     svg.classList.add('free-mode');
     document.getElementById('badge').textContent = '–';
-    document.getElementById('akkord-desc').textContent = 'Frei-Modus – Klick auf Griffbrett setzt oder entfernt Töne';
+    document.getElementById('akkord-desc').textContent = 'Frei-Modus – Klick setzt Ton · nochmal Klick: ♭↔♯ · weiterer Klick: entfernen';
+    const col = VOICING_COLORS[0];
     manualDots.forEach(d => {
-      const cx = L + (d.f - 0.5) * fW;
-      const cy = T + d.s * sH;
-      ap(mk('circle', {cx, cy, r:8, fill:C.manualFill, stroke:C.manualStroke, 'stroke-width':2}));
+      const cx    = L + (d.f - 0.5) * fW;
+      const cy    = T + d.s * sH;
+      const pitch = (OPEN_SEMI[d.s] + d.f) % 12;
+      const lbl   = d.state === 2 ? NOTE_NAMES_SHARP[pitch] : NOTE_NAMES_FLAT[pitch];
+      const fs    = lbl.length > 1 ? 8.5 : 9.5;
+      ap(mk('circle', {cx, cy, r:8, fill:col.fill, stroke:col.stroke, 'stroke-width':1.5}));
+      const t = tx(lbl, cx, cy + 3.5, fs, col.txt, 'middle');
+      t.setAttribute('font-weight', '500');
+      ap(t);
     });
     return;
   }
@@ -1138,11 +1148,20 @@ document.getElementById('akkord-fb').addEventListener('click', function(e) {
   const fWc  = (R - L) / FC;
   const sHc  = (B - T) / (SC - 1);
   if (px < L || px > R || py < T || py > B) return;
-  const f = Math.max(1, Math.min(FC,   Math.floor((px - L) / fWc) + 1));
-  const s = Math.max(0, Math.min(SC-1, Math.round((py - T) / sHc)));
-  const key = s + '-' + f;
-  if (manualDots.has(key)) manualDots.delete(key);
-  else manualDots.set(key, {s, f});
+  const f     = Math.max(1, Math.min(FC,   Math.floor((px - L) / fWc) + 1));
+  const s     = Math.max(0, Math.min(SC-1, Math.round((py - T) / sHc)));
+  const key   = s + '-' + f;
+  const pitch = (OPEN_SEMI[s] + f) % 12;
+  if (!manualDots.has(key)) {
+    manualDots.set(key, {s, f, state: 1});
+  } else {
+    const dot = manualDots.get(key);
+    if (ENHARMONIC_PCS.has(pitch) && dot.state === 1) {
+      dot.state = 2; // ♭ → ♯
+    } else {
+      manualDots.delete(key); // → löschen
+    }
+  }
   render();
 });
 
