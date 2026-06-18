@@ -634,49 +634,26 @@ async function ladeUndZeigeVerlauf() {
 function renderVerlaufPanel() {
   const panel = document.getElementById('panel-verlauf');
   if (!panel) return;
-  const ZIEL       = 1000;
-  const startDaten = getStartDaten();
+  const ZIEL = 1000;
 
-  // Pro-Zähler direkt aus localStorage (kein Archivierungsschritt nötig)
+  let geuebt = {};
+  try { geuebt = JSON.parse(localStorage.getItem('gitueben_geuebt') || '{}'); } catch(e) {}
   let proGeuebt = {};
   try { proGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}
 
   const rows = AKKORD_TYPEN.map(({ key, label }) => {
-    let total = 0, letztesDatum = null;
+    const g   = geuebt[key]   || { count: 0, zeit: '' };
+    const p   = proGeuebt[key];
+    const pro = typeof p === 'number' ? p : (p?.count || 0);
 
-    // Archiv-Einträge aufsummieren
-    if (archivDaten) {
-      archivDaten.durchlaeufe.forEach(d => {
-        const raw = d[key] ?? 0;
-        const t   = typeof raw === 'object' ? (raw.total ?? raw.unique ?? 0) : raw;
-        total += t;
-        if (t > 0) letztesDatum = d.datum; // letzter Archiv-Eintrag mit Übungen dieses Typs
-      });
-    }
-
-    // Aktueller Durchlauf
-    const curr = countTotal(key);
-    total += curr;
-    // Aktiver Durchlauf ist immer aktueller als Archiv → direkt überschreiben
-    if (curr > 0) {
-      let latestZeit = null, bestT = -Infinity;
-      daten[key].forEach(e => {
-        if (e.count > 0 && e.zeit) {
-          const t = zeitWert(e.zeit);
-          if (!isNaN(t) && t > bestT) { bestT = t; latestZeit = e.zeit; }
-        }
-      });
-      if (latestZeit) letztesDatum = latestZeit;
-    }
-
+    const total  = g.count;
     const pct    = Math.min(Math.round((total / ZIEL) * 100), 100);
     const farbe  = total >= ZIEL ? 'var(--accent2)' : 'var(--accent)';
     const txtCol = total >= ZIEL ? 'var(--accent2)' : 'var(--text2)';
-    const pro    = proGeuebt[key] || 0;
 
     return `<tr>
       <td style="font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:600;color:var(--text);padding:0.7rem 0.75rem;white-space:nowrap;">${label}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text3);padding:0.7rem 0.75rem;white-space:nowrap;">${letztesDatum || '–'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text3);padding:0.7rem 0.75rem;white-space:nowrap;">${g.zeit || '–'}</td>
       <td style="padding:0.7rem 0.75rem;min-width:220px;">
         <div style="font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:600;color:${txtCol};margin-bottom:6px;">${total} / ${ZIEL}</div>
         <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;">

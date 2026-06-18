@@ -713,38 +713,12 @@ function zeitstempel() {
 
 function markiereGeuebt() {
   if (!letzteZiffern || !letztePfeile) return;
-  const zStr  = letzteZiffern.join(' ');
-  const pfStr = letztePfeile.join(' ');
-  const zIdx  = ziffernSequenzen['1'].findIndex(p => p.join(' ') === zStr);
-  const pfIdx = allePermsB.findIndex(p => p.join(' ') === pfStr);
-  if (zIdx < 0 || pfIdx < 0) return;
-  const comboIdx = zIdx * 24 + pfIdx;
-
-  const FORT_KEY = 'gitueben_fortschritt';
-  const AKKORDS  = ['dom7','maj7','moll7','moll7b5','dim7'];
-  let daten = {};
-  AKKORDS.forEach(k => { daten[k] = Array.from({length:576}, () => ({count:0,zeit:''})); });
-  try {
-    const raw = localStorage.getItem(FORT_KEY);
-    if (raw) {
-      const saved = JSON.parse(raw);
-      AKKORDS.forEach(k => {
-        if (!Array.isArray(saved[k])) return;
-        saved[k].forEach((v,i) => {
-          if (i >= 576) return;
-          const c = typeof v === 'boolean' ? (v ? 1 : 0)
-                  : (typeof v?.count === 'number' ? v.count : (v?.done ? 1 : 0));
-          daten[k][i] = { count: c, zeit: v?.zeit || '' };
-        });
-      });
-    }
-  } catch(e) {}
-  daten[aktuellerTyp][comboIdx] = {
-    count: (daten[aktuellerTyp][comboIdx].count || 0) + 1,
-    zeit:  zeitstempel(),
-  };
-  localStorage.setItem(FORT_KEY, JSON.stringify(daten));
-  localStorage.setItem('gitueben_dirty', '1'); // signalisiert fortschritt.html: lokale Daten zuerst hochladen
+  const KEY = 'gitueben_geuebt';
+  let zaehler = {};
+  try { zaehler = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
+  const prev = zaehler[aktuellerTyp] || { count: 0 };
+  zaehler[aktuellerTyp] = { count: prev.count + 1, zeit: zeitstempel() };
+  localStorage.setItem(KEY, JSON.stringify(zaehler));
 
   const btn = document.getElementById('btn-geuebt');
   btn.textContent = '✓ Gespeichert';
@@ -859,7 +833,9 @@ function markiereGeuebtC() {
   const PRO_KEY = 'gitueben_pro_geuebt';
   let zaehler = {};
   try { zaehler = JSON.parse(localStorage.getItem(PRO_KEY) || '{}'); } catch(e) {}
-  zaehler[aktuellerTyp] = (zaehler[aktuellerTyp] || 0) + 1;
+  const prev = zaehler[aktuellerTyp];
+  const prevCount = typeof prev === 'number' ? prev : (prev?.count || 0);
+  zaehler[aktuellerTyp] = { count: prevCount + 1, zeit: zeitstempel() };
   localStorage.setItem(PRO_KEY, JSON.stringify(zaehler));
   const btn = document.getElementById('btn-geuebt-c');
   btn.textContent = '✓ Gespeichert';
