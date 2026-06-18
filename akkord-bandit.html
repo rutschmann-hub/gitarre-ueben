@@ -279,10 +279,12 @@
     .neu-gemischt.show { opacity: 1; }
 
     /* ─── Betonungen (Akzent-Muster) ───────────────────── */
-    .betonung-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 6px; }
+    .betonung-wrap { position: relative; display: flex; justify-content: flex-end; margin-top: 6px; }
     .betonung-panel {
+      position: absolute; bottom: calc(100% + 10px); right: 0; z-index: 50;
       background: #f0e7d3; border: 1.5px solid var(--border2);
       border-radius: 14px; padding: 0.6rem 1.75rem; min-width: 220px;
+      box-shadow: var(--shadow);
     }
     .betonung-titel {
       font-size: 0.8rem; font-weight: 700; color: var(--text3);
