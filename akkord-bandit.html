@@ -440,6 +440,7 @@
   </div>
 </div>
 
+<script src="assets/github-api.js"></script>
 <script>
 const akkordTypen = {
   dom7:    { label:'7',    toene:{'C':'C E G Bb','Db':'Db F Ab Cb','D':'D F# A C','Eb':'Eb G Bb Db','E':'E G# B D','F':'F A C Eb','Gb':'Gb Bb Db Fb','G':'G B D F','Ab':'Ab C Eb Gb','A':'A C# E G','Bb':'Bb D F Ab','B':'B D# F# A'}, funkt:{'1':'Grundton','3':'Terz','5':'Quinte','7':'b7'} },
@@ -720,6 +721,11 @@ function markiereGeuebt() {
   zaehler[aktuellerTyp] = { count: prev.count + 1, zeit: zeitstempel() };
   localStorage.setItem(KEY, JSON.stringify(zaehler));
 
+  GitHubAPI.load().then(data => {
+    data.geuebt = zaehler;
+    GitHubAPI.save(data);
+  });
+
   const btn = document.getElementById('btn-geuebt');
   btn.textContent = '✓ Gespeichert';
   btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
@@ -837,6 +843,12 @@ function markiereGeuebtC() {
   const prevCount = typeof prev === 'number' ? prev : (prev?.count || 0);
   zaehler[aktuellerTyp] = { count: prevCount + 1, zeit: zeitstempel() };
   localStorage.setItem(PRO_KEY, JSON.stringify(zaehler));
+
+  GitHubAPI.load().then(data => {
+    data.proGeuebt = zaehler;
+    GitHubAPI.save(data);
+  });
+
   const btn = document.getElementById('btn-geuebt-c');
   btn.textContent = '✓ Gespeichert';
   btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';

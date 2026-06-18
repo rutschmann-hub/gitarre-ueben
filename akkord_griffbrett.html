@@ -174,6 +174,9 @@
     .btn-row { display: flex; align-items: center; gap: 5px; }
     .btn-row .ctrl-lbl { width: 84px; flex-shrink: 0; }
 
+    #akkord-fb.free-mode { cursor: crosshair; }
+    #leeren-btn.aktiv { background: #dce7f0; border-color: #185FA5; color: #185FA5; }
+
     @media (prefers-color-scheme: dark) {
       body { background: #1e1a17; color: #e8e8e8; }
       select { background: #2a2520; color: #e8e8e8; border-color: #444; }
@@ -192,6 +195,7 @@
       #inv-btn-1, #ctx-btn-1 { color:#f0a96b; border-color:#7a4a18; background:rgba(239,159,39,.14); }
       #inv-btn-2, #ctx-btn-2 { color:#8fce80; border-color:#3b6d2f; background:rgba(99,153,34,.14); }
       #inv-btn-3, #ctx-btn-3 { color:#c79be8; border-color:#5a3a8f; background:rgba(123,47,190,.16); }
+      #leeren-btn.aktiv { background: #1a2830; border-color: #4a8abf; color: #9cc4f0; }
     }
 
     @media (max-width: 540px) {
@@ -273,6 +277,7 @@
       <div class="btn-stack">
         <button class="tgl-btn" id="mode-btn" onclick="toggleMode()">Akkordbild</button>
         <button class="tgl-btn" id="droptype-btn" onclick="toggleDropType()" title="Umschalten Drop 2 / Drop 3" style="display:none">Drop 2</button>
+        <button class="tgl-btn" id="leeren-btn" onclick="leerenGriffbrett()" title="Griffbrett leeren – Töne per Klick frei einzeichnen">Leeren</button>
       </div>
     </div>
 
@@ -322,8 +327,8 @@ const VOICING_COLORS = [
 const DARK_MQ = window.matchMedia('(prefers-color-scheme: dark)');
 function fbColors() {
   return DARK_MQ.matches
-    ? {nut:'#9a9a9a', fret:'#aaa', string:'#9a8f86', inlay:'#5a534d', fretNum:'#888', strLbl:'#bbb', mute:'#ff6b6b', num:'#bbb', bandOp:0.30, hlOp:0.32}
-    : {nut:'#555',    fret:'#888', string:'#444',    inlay:'#ccc',    fretNum:'#aaa', strLbl:'#666', mute:'#c33',    num:'#999', bandOp:0.65, hlOp:0.70};
+    ? {nut:'#9a9a9a', fret:'#aaa', string:'#9a8f86', inlay:'#5a534d', fretNum:'#888', strLbl:'#bbb', mute:'#ff6b6b', num:'#bbb', bandOp:0.30, hlOp:0.32, manualFill:'#c0c0c0', manualStroke:'#888'}
+    : {nut:'#555',    fret:'#888', string:'#444',    inlay:'#ccc',    fretNum:'#aaa', strLbl:'#666', mute:'#c33',    num:'#999', bandOp:0.65, hlOp:0.70, manualFill:'#444',    manualStroke:'#111'};
 }
 const OPEN_SEMI  = [4, 11, 7, 2, 9, 4];  // Halbtonabstand der leeren Saite von C
 const NOTES_SEMI = {C:0,Db:1,D:2,Eb:3,E:4,F:5,Gb:6,G:7,Ab:8,A:9,Bb:10,B:11};
@@ -469,6 +474,8 @@ let curDrop2Grp     = 0;           // index in aktueller Drop-Gruppenliste
 let curDrop2Voicing = 0;
 let curCtxVoicings  = new Set();   // aktive Kontext-Voicings im Griffbild (0–3)
 let curCtxDropType  = 2;           // Overlay-Voicing-Typ im Griffbild (2 oder 3)
+let freeMode = false;
+const manualDots = new Map(); // Schlüssel "s-f" → {s: Saitenreihe, f: Bund}
 
 function getShapes() {
   if (curInversion === 1) return SHAPES_INV1;
@@ -809,6 +816,20 @@ function render() {
     ap(t);
   }
 
+  // Frei-Modus: manuelle Töne zeichnen, kein Akkord
+  if (freeMode) {
+    svg.classList.add('free-mode');
+    document.getElementById('badge').textContent = '–';
+    document.getElementById('akkord-desc').textContent = 'Frei-Modus – Klick auf Griffbrett setzt oder entfernt Töne';
+    manualDots.forEach(d => {
+      const cx = L + (d.f - 0.5) * fW;
+      const cy = T + d.s * sH;
+      ap(mk('circle', {cx, cy, r:8, fill:C.manualFill, stroke:C.manualStroke, 'stroke-width':2}));
+    });
+    return;
+  }
+  svg.classList.remove('free-mode');
+
   if (!hasShape) return;
 
   // Punkte berechnen
@@ -894,6 +915,7 @@ function tx(content, x, y, fs, fill, anchor) {
 
 // ── Event-Handler (manuelle Bedienung) ────────────────────────
 function setInversion(n) {
+  exitFreeMode();
   curInversion = n;
   document.querySelectorAll('.inv-btn').forEach((b, i) => {
     b.classList.remove('inv-aktiv-0', 'inv-aktiv-1', 'inv-aktiv-2', 'inv-aktiv-3');
@@ -904,6 +926,7 @@ function setInversion(n) {
 }
 
 function navGrundton(dir) {
+  exitFreeMode();
   const i = GRUNDTON_ORDER.indexOf(curGrundton);
   curGrundton = GRUNDTON_ORDER[(i + dir + GRUNDTON_ORDER.length) % GRUNDTON_ORDER.length];
   document.getElementById('grundton-sel').value = curGrundton;
@@ -911,11 +934,13 @@ function navGrundton(dir) {
   buildLegend(); buildShpSel(); render();
 }
 function setGrundtonSel(val) {
+  exitFreeMode();
   curGrundton = val;
   if (window.parent !== window) window.parent.postMessage({grundtonUpdate: curGrundton}, '*');
   buildLegend(); buildShpSel(); render();
 }
 function navChord(dir) {
+  exitFreeMode();
   const i = CHORD_ORDER.indexOf(curChord);
   curChord = CHORD_ORDER[(i + dir + CHORD_ORDER.length) % CHORD_ORDER.length];
   document.getElementById('chord-badge').textContent = CHORD_LABELS[curChord];
@@ -923,6 +948,7 @@ function navChord(dir) {
   buildLegend(); buildShpSel(); render();
 }
 function navSaite(dir) {
+  exitFreeMode();
   if (curMode === 'drop2') {
     const grps = dropGrps();
     curDrop2Grp = (curDrop2Grp + dir + grps.length) % grps.length;
@@ -942,6 +968,7 @@ function toggleAnzeige() {
   render();
 }
 function nav(dir) {
+  exitFreeMode();
   if (curMode === 'drop2') return;
   const valid = validShapeIndices();
   if (!valid.length) return;
@@ -975,6 +1002,7 @@ function toggleDropType() {
 }
 
 function toggleMode() {
+  exitFreeMode();
   curMode = curMode === 'griffbild' ? 'drop2' : 'griffbild';
   const isD2 = curMode === 'drop2';
   document.getElementById('mode-btn').textContent        = isD2 ? 'Griffbild' : 'Akkordbild';
@@ -984,6 +1012,29 @@ function toggleMode() {
   document.getElementById('saite-badge').textContent     = isD2 ? dropGrps()[curDrop2Grp].badge : GROUP_LABELS[curGroup];
   if (isD2) curDrop2Voicing = 0;
   buildLegend(); render();
+}
+
+// ── Frei-Modus ─────────────────────────────────────────────────
+function leerenGriffbrett() {
+  if (curMode === 'drop2') {
+    curMode = 'griffbild';
+    document.getElementById('mode-btn').textContent = 'Akkordbild';
+    document.getElementById('umkehrung-row').style.display = '';
+    document.getElementById('ctx-row').style.display = '';
+    document.getElementById('droptype-btn').style.display = 'none';
+    document.getElementById('saite-badge').textContent = GROUP_LABELS[curGroup];
+    buildLegend();
+  }
+  freeMode = true;
+  manualDots.clear();
+  document.getElementById('leeren-btn').classList.add('aktiv');
+  render();
+}
+function exitFreeMode() {
+  if (!freeMode) return;
+  freeMode = false;
+  manualDots.clear();
+  document.getElementById('leeren-btn').classList.remove('aktiv');
 }
 
 // ── Zustand merken (localStorage) ─────────────────────────────
@@ -1055,8 +1106,7 @@ window.addEventListener('message', (e) => {
     changed = true;
   }
   if (changed) {
-    // Shape nur zurücksetzen wenn er durch die neue Konstellation ungültig wird;
-    // buildShpSel() erledigt das automatisch – kein harter Reset auf 0
+    exitFreeMode();
     buildLegend(); buildShpSel(); render();
   }
 });
@@ -1076,6 +1126,25 @@ buildShpSel();
 render();
 // Bei OS-Theme-Wechsel Griffbrett neu zeichnen (Dark-Mode-Farben)
 DARK_MQ.addEventListener('change', render);
+
+// Klick auf Griffbrett: im Frei-Modus Töne setzen/entfernen
+document.getElementById('akkord-fb').addEventListener('click', function(e) {
+  if (!freeMode || curMode === 'drop2') return;
+  const rect = this.getBoundingClientRect();
+  const vb   = this.viewBox.baseVal;
+  const px   = (e.clientX - rect.left) / rect.width  * vb.width;
+  const py   = (e.clientY - rect.top)  / rect.height * vb.height;
+  const L = 16, R = 756, T = 16, B = 148, SC = 6;
+  const fWc  = (R - L) / FC;
+  const sHc  = (B - T) / (SC - 1);
+  if (px < L || px > R || py < T || py > B) return;
+  const f = Math.max(1, Math.min(FC,   Math.floor((px - L) / fWc) + 1));
+  const s = Math.max(0, Math.min(SC-1, Math.round((py - T) / sHc)));
+  const key = s + '-' + f;
+  if (manualDots.has(key)) manualDots.delete(key);
+  else manualDots.set(key, {s, f});
+  render();
+});
 
 // Eigene Höhe ans Elternfenster melden, damit das iframe ohne Scrollbalken passt
 // (das SVG skaliert mit der Breite, daher ändert sich die Höhe responsiv)

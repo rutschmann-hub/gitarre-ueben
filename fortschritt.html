@@ -59,6 +59,7 @@
   </div>
 </main>
 
+<script src="assets/github-api.js"></script>
 <script>
 const AKKORD_TYPEN = [
   { key: 'dom7',    label: 'Dom 7'      },
@@ -97,14 +98,12 @@ function migrateAltesDaten() {
   } catch(e) {}
 }
 
-function renderVerlauf() {
+function renderVerlauf(geuebt = null, proGeuebt = null) {
   const panel = document.getElementById('verlauf-panel');
   const ZIEL  = 1000;
 
-  let geuebt = {};
-  try { geuebt = JSON.parse(localStorage.getItem('gitueben_geuebt') || '{}'); } catch(e) {}
-  let proGeuebt = {};
-  try { proGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}
+  if (!geuebt)    try { geuebt    = JSON.parse(localStorage.getItem('gitueben_geuebt')     || '{}'); } catch(e) { geuebt = {}; }
+  if (!proGeuebt) try { proGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) { proGeuebt = {}; }
 
   const rows = AKKORD_TYPEN.map(({ key, label }) => {
     const g     = geuebt[key]   || { count: 0, zeit: '' };
@@ -142,7 +141,16 @@ function renderVerlauf() {
     </div>`;
 }
 
-window.addEventListener('pageshow', () => { migrateAltesDaten(); renderVerlauf(); });
+window.addEventListener('pageshow', () => {
+  migrateAltesDaten();
+  renderVerlauf(); // sofort mit localStorage zeigen
+  GitHubAPI.load().then(data => {
+    // Daten aus GitHub überschreiben localStorage und neu rendern
+    if (data.geuebt)    localStorage.setItem('gitueben_geuebt',     JSON.stringify(data.geuebt));
+    if (data.proGeuebt) localStorage.setItem('gitueben_pro_geuebt', JSON.stringify(data.proGeuebt));
+    renderVerlauf(data.geuebt || {}, data.proGeuebt || {});
+  });
+});
 </script>
 </body>
 </html>

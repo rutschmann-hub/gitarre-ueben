@@ -43,7 +43,7 @@ const GitHubAPI = (() => {
 
   // ── Empty data shape ───────────────────────────────────────────────────
   function emptyProgress() {
-    return { sequenzen: {}, skalen: {}, akkorde: {}, fortschritt: {} };
+    return { sequenzen: {}, skalen: {}, akkorde: {}, fortschritt: {}, geuebt: {}, proGeuebt: {} };
   }
 
   // ── Load ───────────────────────────────────────────────────────────────
