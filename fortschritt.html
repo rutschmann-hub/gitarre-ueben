@@ -69,25 +69,31 @@ const AKKORD_TYPEN = [
 ];
 
 function migrateAltesDaten() {
-  if (localStorage.getItem('gitueben_geuebt')) return;
+  if (localStorage.getItem('gitueben_migrated')) return;
+  localStorage.setItem('gitueben_migrated', '1');
   const raw = localStorage.getItem('gitueben_fortschritt');
   if (!raw) return;
   try {
     const saved = JSON.parse(raw);
-    const geuebt = {};
+    let geuebt = {};
+    try { geuebt = JSON.parse(localStorage.getItem('gitueben_geuebt') || '{}'); } catch(e) {}
+    let changed = false;
     AKKORD_TYPEN.forEach(({ key }) => {
       const arr = saved[key];
       if (!Array.isArray(arr)) return;
-      let total = 0, letzteZeit = '';
+      let oldTotal = 0, oldZeit = '';
       arr.forEach(v => {
         const c = typeof v === 'boolean' ? (v ? 1 : 0)
                 : (typeof v?.count === 'number' ? v.count : (v?.done ? 1 : 0));
-        total += c;
-        if (c > 0 && v?.zeit) letzteZeit = v.zeit;
+        oldTotal += c;
+        if (c > 0 && v?.zeit) oldZeit = v.zeit;
       });
-      if (total > 0) geuebt[key] = { count: total, zeit: letzteZeit };
+      if (oldTotal === 0) return;
+      const curr = geuebt[key] || { count: 0, zeit: '' };
+      geuebt[key] = { count: curr.count + oldTotal, zeit: curr.zeit || oldZeit };
+      changed = true;
     });
-    localStorage.setItem('gitueben_geuebt', JSON.stringify(geuebt));
+    if (changed) localStorage.setItem('gitueben_geuebt', JSON.stringify(geuebt));
   } catch(e) {}
 }
 
