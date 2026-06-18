@@ -19,12 +19,16 @@
 
     .bandit-wrap {
       width: 100%;
-      max-width: 1160px;
+      max-width: 1330px;
       display: flex;
       flex-direction: column;
       gap: 0.35rem;
     }
-    .app-header-inner { max-width: 1160px; }
+    .app-header-inner { max-width: 1330px; }
+    /* Hauptinhalt links begrenzen, damit rechts Platz fürs Betonungs-Panel bleibt */
+    .settings-bar, .griffbrett-widget-wrap, .akkord-name-display {
+      align-self: flex-start; width: 100%; max-width: 1160px;
+    }
 
     /* ─── Settings bar ─────────────────────────────────── */
     .settings-bar {
@@ -102,6 +106,7 @@
     }
 
     .raeder-wrap {
+      position: relative;
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
@@ -110,7 +115,7 @@
     /* ─── Räder ────────────────────────────────────────── */
     .raeder-block {
       display: flex; flex-wrap: wrap; gap: 1.25rem;
-      align-items: stretch; justify-content: center;
+      align-items: stretch; justify-content: flex-start; max-width: 1160px;
     }
     .rad-gruppe {
       display: flex; flex-direction: column; gap: 10px;
@@ -272,34 +277,35 @@
     .reset-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
     /* ─── Zähler ───────────────────────────────────────── */
-    .zaehler-reihe { display: flex; gap: 1.75rem; align-items: center; flex-wrap: wrap; justify-content: center; }
+    .zaehler-reihe { display: flex; gap: 1.75rem; align-items: center; flex-wrap: wrap; justify-content: center; max-width: 1160px; }
     .zaehler { font-size: 0.85rem; font-weight: 500; color: var(--text3); }
     .zaehler span { color: var(--text2); }
     .neu-gemischt { font-size: 0.78rem; color: var(--accent2); font-style: italic; opacity: 0; transition: opacity 0.5s; }
     .neu-gemischt.show { opacity: 1; }
 
     /* ─── Betonungen (Akzent-Muster) ───────────────────── */
-    .betonung-wrap { position: relative; display: flex; justify-content: flex-end; margin-top: 6px; }
+    .betonung-wrap { position: absolute; right: 0; bottom: 0; }
+    #betonung-toggle { padding: 7px 14px; font-size: 0.82rem; min-width: 0; }
     .betonung-panel {
-      position: absolute; bottom: calc(100% + 10px); right: 0; z-index: 50;
+      position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 50;
       background: #f0e7d3; border: 1.5px solid var(--border2);
-      border-radius: 14px; padding: 0.6rem 1.75rem; min-width: 220px;
+      border-radius: 12px; padding: 0.5rem 0.8rem; min-width: 0;
       box-shadow: var(--shadow);
     }
     .betonung-titel {
-      font-size: 0.8rem; font-weight: 700; color: var(--text3);
-      text-transform: uppercase; letter-spacing: 0.07em;
-      text-align: center; margin-bottom: 6px;
+      font-size: 0.68rem; font-weight: 700; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      text-align: center; margin-bottom: 4px;
     }
     .betonung-zeile {
-      display: flex; justify-content: center; align-items: center; gap: 16px;
-      padding: 6px 0; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: center; align-items: center; gap: 9px;
+      padding: 4px 0; border-bottom: 1px solid var(--border);
     }
     .betonung-zeile:last-child { border-bottom: none; }
     .betonung-zeile span {
-      width: 1.7em; height: 1.7em; box-sizing: border-box;
+      width: 1.5em; height: 1.5em; box-sizing: border-box;
       display: inline-flex; align-items: center; justify-content: center;
-      font-size: 1.05rem; color: var(--text2);
+      font-size: 0.92rem; color: var(--text2);
     }
     .betonung-zeile span.akz {
       color: var(--text); font-weight: 700;
@@ -422,9 +428,9 @@
 
       <!-- Betonungen (Akzent-Muster) ein-/ausblendbar -->
       <div class="betonung-wrap">
-        <button class="drehen-btn" id="betonung-toggle" onclick="toggleBetonung()">Betonungen einblenden</button>
+        <button class="drehen-btn" id="betonung-toggle" onclick="toggleBetonung()">Betonungen ▾</button>
         <div class="betonung-panel" id="betonung-panel" hidden>
-          <div class="betonung-titel">Betonung — welche der 4 betont werden</div>
+          <div class="betonung-titel">Betonung</div>
           <div id="betonung-liste"></div>
         </div>
       </div>
@@ -886,7 +892,7 @@ function toggleBetonung() {
   const panel = document.getElementById('betonung-panel');
   const show  = panel.hidden;
   panel.hidden = !show;
-  document.getElementById('betonung-toggle').textContent = show ? 'Betonungen ausblenden' : 'Betonungen einblenden';
+  document.getElementById('betonung-toggle').textContent = show ? 'Betonungen ▴' : 'Betonungen ▾';
 }
 
 // ── Init ─────────────────────────────────────────────────
