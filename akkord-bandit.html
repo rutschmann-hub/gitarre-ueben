@@ -278,6 +278,24 @@
     .neu-gemischt { font-size: 0.78rem; color: var(--accent2); font-style: italic; opacity: 0; transition: opacity 0.5s; }
     .neu-gemischt.show { opacity: 1; }
 
+    /* ─── Betonungen (Akzent-Muster) ───────────────────── */
+    .betonung-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 6px; }
+    .betonung-panel {
+      background: #f0e7d3; border: 1.5px solid var(--border2);
+      border-radius: 14px; padding: 0.6rem 1.75rem; min-width: 220px;
+    }
+    .betonung-titel {
+      font-size: 0.8rem; font-weight: 700; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      text-align: center; margin-bottom: 6px;
+    }
+    .betonung-zeile {
+      font-size: 1.05rem; color: var(--text2); text-align: center;
+      padding: 5px 0; border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    .betonung-zeile:last-child { border-bottom: none; }
+    .betonung-zeile strong { color: var(--text); font-weight: 700; }
+
     /* ─── Griffbrett Widget ──────────────────────────────── */
     .griffbrett-widget-wrap {
       border: 1.5px solid var(--border2);
@@ -390,6 +408,15 @@
         <div class="zaehler">Pfeile pro: <span id="zaehler-c">0</span></div>
         <div class="neu-gemischt" id="neu-gemischt-a"></div>
         <div class="neu-gemischt" id="neu-gemischt-b"></div>
+      </div>
+
+      <!-- Betonungen (Akzent-Muster) ein-/ausblendbar -->
+      <div class="betonung-wrap">
+        <button class="drehen-btn" id="betonung-toggle" onclick="toggleBetonung()">Betonungen einblenden</button>
+        <div class="betonung-panel" id="betonung-panel" hidden>
+          <div class="betonung-titel">Betonung — welche der 4 betont werden</div>
+          <div id="betonung-liste"></div>
+        </div>
       </div>
     </div>
 
@@ -824,6 +851,34 @@ function markiereGeuebtC() {
   setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
 }
 
+// ── Betonungen (alle 16 Akzent-Muster über 4 Positionen) ──
+function betonungsMuster() {
+  const res = [];
+  for (let k = 0; k <= 4; k++) {
+    (function pick(start, cur) {
+      if (cur.length === k) { res.push([...cur]); return; }
+      for (let i = start; i < 4; i++) { cur.push(i); pick(i + 1, cur); cur.pop(); }
+    })(0, []);
+  }
+  return res; // 16 Muster, je ein Array betonter Positionen (0–3)
+}
+function buildBetonung() {
+  const liste = document.getElementById('betonung-liste');
+  liste.innerHTML = '';
+  betonungsMuster().forEach(set => {
+    const z = document.createElement('div');
+    z.className = 'betonung-zeile';
+    z.innerHTML = [1, 2, 3, 4].map((n, i) => set.includes(i) ? '<strong>' + n + '</strong>' : n).join(', ');
+    liste.appendChild(z);
+  });
+}
+function toggleBetonung() {
+  const panel = document.getElementById('betonung-panel');
+  const show  = panel.hidden;
+  panel.hidden = !show;
+  document.getElementById('betonung-toggle').textContent = show ? 'Betonungen ausblenden' : 'Betonungen einblenden';
+}
+
 // ── Init ─────────────────────────────────────────────────
 erstelleRad('raeder-a', ziffernSymbole);
 erstelleRad('raeder-b', pfeilSymbole);
@@ -831,6 +886,7 @@ erstelleRadN('raeder-c', 4, pfeilSymboleC);
 erstelleNotationsBoxenC();
 erstelleSilbenBoxenC();
 erstellePills();
+buildBetonung();
 
 // Griffbrett-iframe: beim Laden initialen Zustand schicken
 document.getElementById('griffbrett-iframe').addEventListener('load', syncGriffbrett);
