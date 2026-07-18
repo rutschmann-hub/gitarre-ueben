@@ -141,14 +141,44 @@ function renderVerlauf(geuebt = null, proGeuebt = null) {
     </div>`;
 }
 
+// Zählt den höheren Stand von zwei Ständen pro Key (lokal vs. GitHub).
+// Nötig weil der Geübt-Sync im Bandit asynchron läuft und beim Seitenwechsel
+// abgebrochen werden kann – ein noch nicht hochgeladener lokaler Klick darf
+// dann nicht durch die ältere GitHub-Version überschrieben werden.
+function mergeZaehler(local, remote) {
+  const out = { ...remote };
+  Object.keys(local).forEach(key => {
+    const l = local[key], r = remote[key];
+    const lc = typeof l === 'number' ? l : (l?.count || 0);
+    const rc = typeof r === 'number' ? r : (r?.count || 0);
+    out[key] = lc >= rc ? l : r;
+  });
+  return out;
+}
+
 window.addEventListener('pageshow', () => {
   migrateAltesDaten();
   renderVerlauf(); // sofort mit localStorage zeigen
   GitHubAPI.load().then(data => {
-    // Daten aus GitHub überschreiben localStorage und neu rendern
-    if (data.geuebt)    localStorage.setItem('gitueben_geuebt',     JSON.stringify(data.geuebt));
-    if (data.proGeuebt) localStorage.setItem('gitueben_pro_geuebt', JSON.stringify(data.proGeuebt));
-    renderVerlauf(data.geuebt || {}, data.proGeuebt || {});
+    let localGeuebt = {}, localProGeuebt = {};
+    try { localGeuebt    = JSON.parse(localStorage.getItem('gitueben_geuebt')     || '{}'); } catch(e) {}
+    try { localProGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}
+
+    const geuebt    = mergeZaehler(localGeuebt,    data.geuebt    || {});
+    const proGeuebt = mergeZaehler(localProGeuebt, data.proGeuebt || {});
+
+    localStorage.setItem('gitueben_geuebt',     JSON.stringify(geuebt));
+    localStorage.setItem('gitueben_pro_geuebt', JSON.stringify(proGeuebt));
+    renderVerlauf(geuebt, proGeuebt);
+
+    // Falls lokale Stände höher waren als auf GitHub: korrigierten Stand hochladen
+    const abweichung = JSON.stringify(geuebt) !== JSON.stringify(data.geuebt || {})
+                     || JSON.stringify(proGeuebt) !== JSON.stringify(data.proGeuebt || {});
+    if (abweichung) {
+      data.geuebt = geuebt;
+      data.proGeuebt = proGeuebt;
+      GitHubAPI.save(data);
+    }
   });
 });
 </script>

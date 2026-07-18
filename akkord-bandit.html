@@ -715,14 +715,18 @@ function zeitstempel() {
 function markiereGeuebt() {
   if (!letzteZiffern || !letztePfeile) return;
   const KEY = 'gitueben_geuebt';
-  let zaehler = {};
-  try { zaehler = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
-  const prev = zaehler[aktuellerTyp] || { count: 0 };
-  zaehler[aktuellerTyp] = { count: prev.count + 1, zeit: zeitstempel() };
-  localStorage.setItem(KEY, JSON.stringify(zaehler));
+  const typ = aktuellerTyp;
+  const zeit = zeitstempel();
 
+  // Auf dem GitHub-Stand aufbauen statt auf dem lokalen Cache: der Cache wird
+  // sonst nie mit GitHub abgeglichen und ein veralteter lokaler Wert würde den
+  // echten (höheren) Online-Stand beim Speichern überschreiben.
   GitHubAPI.load().then(data => {
+    const zaehler = data.geuebt || {};
+    const prev = zaehler[typ] || { count: 0 };
+    zaehler[typ] = { count: prev.count + 1, zeit };
     data.geuebt = zaehler;
+    localStorage.setItem(KEY, JSON.stringify(zaehler));
     GitHubAPI.save(data);
   });
 
@@ -837,15 +841,16 @@ function updateGeuebtBtnC() {
 function markiereGeuebtC() {
   if (!letzteZiffern || !letztePfeileC) return;
   const PRO_KEY = 'gitueben_pro_geuebt';
-  let zaehler = {};
-  try { zaehler = JSON.parse(localStorage.getItem(PRO_KEY) || '{}'); } catch(e) {}
-  const prev = zaehler[aktuellerTyp];
-  const prevCount = typeof prev === 'number' ? prev : (prev?.count || 0);
-  zaehler[aktuellerTyp] = { count: prevCount + 1, zeit: zeitstempel() };
-  localStorage.setItem(PRO_KEY, JSON.stringify(zaehler));
+  const typ = aktuellerTyp;
+  const zeit = zeitstempel();
 
   GitHubAPI.load().then(data => {
+    const zaehler = data.proGeuebt || {};
+    const prev = zaehler[typ];
+    const prevCount = typeof prev === 'number' ? prev : (prev?.count || 0);
+    zaehler[typ] = { count: prevCount + 1, zeit };
     data.proGeuebt = zaehler;
+    localStorage.setItem(PRO_KEY, JSON.stringify(zaehler));
     GitHubAPI.save(data);
   });
 
