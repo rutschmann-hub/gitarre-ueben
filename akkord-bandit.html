@@ -717,6 +717,10 @@ function markiereGeuebt() {
   const KEY = 'gitueben_geuebt';
   const typ = aktuellerTyp;
   const zeit = zeitstempel();
+  const btn = document.getElementById('btn-geuebt');
+
+  btn.textContent = '… speichert';
+  btn.style.cssText = '';
 
   // Auf dem GitHub-Stand aufbauen statt auf dem lokalen Cache: der Cache wird
   // sonst nie mit GitHub abgeglichen und ein veralteter lokaler Wert würde den
@@ -727,13 +731,19 @@ function markiereGeuebt() {
     zaehler[typ] = { count: prev.count + 1, zeit };
     data.geuebt = zaehler;
     localStorage.setItem(KEY, JSON.stringify(zaehler));
-    GitHubAPI.save(data);
+    return GitHubAPI.save(data);
+  }).then(result => {
+    // Ehrliches Feedback: nur bei tatsächlichem Erfolg "Gespeichert" zeigen,
+    // sonst würde ein stiller Fehler (z.B. fehlender Token) unbemerkt bleiben.
+    if (result && result.ok) {
+      btn.textContent = '✓ Gespeichert';
+      btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
+    } else {
+      btn.textContent = '✗ Nicht gespeichert';
+      btn.style.cssText = 'background:#c0392b;color:#fff;border-color:#c0392b';
+    }
+    setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
   });
-
-  const btn = document.getElementById('btn-geuebt');
-  btn.textContent = '✓ Gespeichert';
-  btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
-  setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
 }
 
 // ── Griffbrett Sync ──────────────────────────────────────
@@ -843,6 +853,10 @@ function markiereGeuebtC() {
   const PRO_KEY = 'gitueben_pro_geuebt';
   const typ = aktuellerTyp;
   const zeit = zeitstempel();
+  const btn = document.getElementById('btn-geuebt-c');
+
+  btn.textContent = '… speichert';
+  btn.style.cssText = '';
 
   GitHubAPI.load().then(data => {
     const zaehler = data.proGeuebt || {};
@@ -851,13 +865,17 @@ function markiereGeuebtC() {
     zaehler[typ] = { count: prevCount + 1, zeit };
     data.proGeuebt = zaehler;
     localStorage.setItem(PRO_KEY, JSON.stringify(zaehler));
-    GitHubAPI.save(data);
+    return GitHubAPI.save(data);
+  }).then(result => {
+    if (result && result.ok) {
+      btn.textContent = '✓ Gespeichert';
+      btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
+    } else {
+      btn.textContent = '✗ Nicht gespeichert';
+      btn.style.cssText = 'background:#c0392b;color:#fff;border-color:#c0392b';
+    }
+    setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
   });
-
-  const btn = document.getElementById('btn-geuebt-c');
-  btn.textContent = '✓ Gespeichert';
-  btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
-  setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
 }
 
 // ── Betonungen (alle 16 Akzent-Muster über 4 Positionen) ──
