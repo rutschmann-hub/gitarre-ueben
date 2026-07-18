@@ -28,14 +28,30 @@ const GitHubAPI = (() => {
 
   function pwFormular() {
     if (_pwForm && document.body.contains(_pwForm)) return _pwForm;
+
+    // Verstecktes Ziel-iframe: das Formular schickt wirklich ab (kein
+    // preventDefault), damit Firefox eine echte, nicht abgebrochene
+    // Anmeldung sieht – nur läuft die Navigation im iframe, nicht auf der
+    // eigentlichen Seite.
+    let sink = document.getElementById('gh-token-pw-sink');
+    if (!sink) {
+      sink = document.createElement('iframe');
+      sink.id = 'gh-token-pw-sink';
+      sink.name = 'gh-token-pw-sink';
+      sink.style.cssText = 'position:absolute;width:0;height:0;border:0;left:-9999px;';
+      document.body.appendChild(sink);
+    }
+
     const form = document.createElement('form');
     form.id = 'gh-token-pw-form';
+    form.method = 'post';
+    form.action = location.pathname; // selbe Seite, harmlos (GET-Inhalt wird ignoriert)
+    form.target = 'gh-token-pw-sink';
     form.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
     form.innerHTML = `
       <input type="text" name="username" autocomplete="username" value="gitarre-ueben" readonly>
       <input type="password" name="password" autocomplete="current-password">
     `;
-    form.addEventListener('submit', (e) => e.preventDefault());
     document.body.appendChild(form);
     _pwForm = form;
     return form;
@@ -44,7 +60,13 @@ const GitHubAPI = (() => {
   function merkeTokenImPasswortmanager(token) {
     if (!document.body) return; // Skript läuft vor <body>, kann noch nicht
     const form = pwFormular();
-    form.querySelector('input[type=password]').value = token;
+    const feld = form.querySelector('input[type=password]');
+    feld.value = token;
+    // Echtes input/change-Event auslösen: manche Browser ignorieren einen
+    // per JS gesetzten .value ohne diese Events beim Entscheiden, ob ein
+    // Passwort speicherwürdig ist.
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    feld.dispatchEvent(new Event('change', { bubbles: true }));
     if (form.requestSubmit) form.requestSubmit(); else form.submit();
   }
 
