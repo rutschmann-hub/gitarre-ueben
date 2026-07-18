@@ -50,7 +50,10 @@ const GitHubAPI = (() => {
   async function load() {
     const url = `${API_BASE}/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
     try {
-      const r = await fetch(url, { headers: buildHeaders() });
+      // no-store: GitHub sendet Cache-Control mit max-age auf den Contents-
+      // Endpoint – ohne das würde der Browser kurz aufeinanderfolgende
+      // Aufrufe aus dem HTTP-Cache mit veralteter sha/Daten beantworten.
+      const r = await fetch(url, { headers: buildHeaders(), cache: 'no-store' });
 
       if (r.status === 404) {
         // File not yet in repo – start with empty state
