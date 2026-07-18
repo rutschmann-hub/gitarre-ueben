@@ -932,6 +932,7 @@ window.addEventListener('message', (e) => {
 window.addEventListener('pageshow', (e) => {
   if (!e.persisted) ladeState();
   syncGriffbrett();
+  GitHubAPI.restoreTokenFallback();
 });
 </script>
 </body>

@@ -364,6 +364,7 @@
   // ── Init ──────────────────────────────────────────────────────────────
   async function init() {
     setSyncStatus('saving', '⟳ Lädt…');
+    await GitHubAPI.restoreTokenFallback();
     await GitHubAPI.syncPending();
     progress = await GitHubAPI.load();
     renderAll();

@@ -15,9 +15,61 @@ const GitHubAPI = (() => {
 
   // ── Token ──────────────────────────────────────────────────────────────
   const getToken   = ()  => localStorage.getItem(TOKEN_KEY);
-  const setToken   = (t) => localStorage.setItem(TOKEN_KEY, t.trim());
   const clearToken = ()  => localStorage.removeItem(TOKEN_KEY);
   const isDirty    = ()  => !!localStorage.getItem(DIRTY_KEY);
+
+  // ── Passwortmanager-Fallback für den Token ─────────────────────────────
+  // localStorage wird von Firefox beim Löschen von "Cookies und Website-
+  // Daten" mitgelöscht (auch automatisch beim Schließen, falls so
+  // konfiguriert). Der Passwort-Speicher des Browsers ist davon nicht
+  // betroffen, daher legen wir den Token zusätzlich dort ab – über ein
+  // unsichtbares Login-Formular, das der Browser als solches erkennt.
+  let _pwForm = null;
+
+  function pwFormular() {
+    if (_pwForm && document.body.contains(_pwForm)) return _pwForm;
+    const form = document.createElement('form');
+    form.id = 'gh-token-pw-form';
+    form.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+    form.innerHTML = `
+      <input type="text" name="username" autocomplete="username" value="gitarre-ueben" readonly>
+      <input type="password" name="password" autocomplete="current-password">
+    `;
+    form.addEventListener('submit', (e) => e.preventDefault());
+    document.body.appendChild(form);
+    _pwForm = form;
+    return form;
+  }
+
+  function merkeTokenImPasswortmanager(token) {
+    if (!document.body) return; // Skript läuft vor <body>, kann noch nicht
+    const form = pwFormular();
+    form.querySelector('input[type=password]').value = token;
+    if (form.requestSubmit) form.requestSubmit(); else form.submit();
+  }
+
+  function holeTokenAusPasswortmanager() {
+    return new Promise((resolve) => {
+      if (!document.body) { resolve(null); return; }
+      const feld = pwFormular().querySelector('input[type=password]');
+      // Autofill durch den Browser braucht einen Moment nach dem Einfügen ins DOM
+      setTimeout(() => resolve(feld.value || null), 400);
+    });
+  }
+
+  const setToken = (t) => {
+    const val = t.trim();
+    localStorage.setItem(TOKEN_KEY, val);
+    merkeTokenImPasswortmanager(val);
+  };
+
+  // Beim Laden aufrufen, bevor getToken()/load() gebraucht wird: falls
+  // localStorage keinen Token (mehr) hat, aus dem Passwortspeicher holen.
+  async function restoreTokenFallback() {
+    if (getToken()) return;
+    const restored = await holeTokenAusPasswortmanager();
+    if (restored) localStorage.setItem(TOKEN_KEY, restored);
+  }
 
   function buildHeaders() {
     const h = { Accept: 'application/vnd.github.v3+json' };
@@ -146,5 +198,5 @@ const GitHubAPI = (() => {
     return save(JSON.parse(cached));
   }
 
-  return { load, save, syncPending, getToken, setToken, clearToken, emptyProgress, isDirty };
+  return { load, save, syncPending, getToken, setToken, clearToken, emptyProgress, isDirty, restoreTokenFallback };
 })();

@@ -159,7 +159,7 @@ function mergeZaehler(local, remote) {
 window.addEventListener('pageshow', () => {
   migrateAltesDaten();
   renderVerlauf(); // sofort mit localStorage zeigen
-  GitHubAPI.load().then(data => {
+  GitHubAPI.restoreTokenFallback().then(() => GitHubAPI.load()).then(data => {
     let localGeuebt = {}, localProGeuebt = {};
     try { localGeuebt    = JSON.parse(localStorage.getItem('gitueben_geuebt')     || '{}'); } catch(e) {}
     try { localProGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}

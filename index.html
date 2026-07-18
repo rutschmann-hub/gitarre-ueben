@@ -236,6 +236,7 @@
   // ── Init ──────────────────────────────────────────────────────────────
   async function init() {
     setSyncStatus('saving', '⟳ Lädt…');
+    await GitHubAPI.restoreTokenFallback();
     await GitHubAPI.syncPending();
     progressData = await GitHubAPI.load();
     renderCards();
