@@ -174,6 +174,17 @@ function renderVerlauf(geuebt = null, proGeuebt = null) {
   panel.innerHTML = renderGrid('Geübt', geuebt) + renderGrid('Geübt Pro', proGeuebt);
 }
 
+// Wandelt einen evtl. noch flachen Alt-Eintrag ({count, zeit}) in die
+// verschachtelte Form ({unbekannt: {count, zeit}}) um – Verteidigung gegen
+// Überbleibsel aus älteren Versionen, damit deren count/zeit-Felder nicht
+// fälschlich als Tonart-Namen behandelt werden.
+function normalisiereTypEintrag(eintrag) {
+  if (!eintrag) return {};
+  if (typeof eintrag === 'number') return { unbekannt: { count: eintrag, zeit: '' } };
+  if (typeof eintrag.count === 'number') return { unbekannt: { count: eintrag.count, zeit: eintrag.zeit || '' } };
+  return eintrag;
+}
+
 // Zählt pro Typ+Tonart den höheren Stand von zwei Ständen (lokal vs. Sheet).
 // Nötig weil der Geübt-Sync im Bandit asynchron läuft und beim Seitenwechsel
 // abgebrochen werden kann – ein noch nicht hochgeladener lokaler Klick darf
@@ -182,8 +193,8 @@ function mergeZaehler(local, remote) {
   const out = {};
   const typen = new Set([...Object.keys(local), ...Object.keys(remote)]);
   typen.forEach(typ => {
-    const l = local[typ] || {};
-    const r = remote[typ] || {};
+    const l = normalisiereTypEintrag(local[typ]);
+    const r = normalisiereTypEintrag(remote[typ]);
     const merged = { ...r };
     Object.keys(l).forEach(gt => {
       const lc = zahlVon(l[gt]);
