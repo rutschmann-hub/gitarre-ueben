@@ -712,37 +712,56 @@ function zeitstempel() {
   return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
+// Alte Zähler-Form war { [typ]: {count, zeit} } – ohne Tonart. Wird hier zu
+// { [typ]: { unbekannt: {count, zeit}, [grundton]: {...} } } migriert, damit
+// alte Gesamtzahlen nicht verloren gehen, auch wenn die Tonart unbekannt bleibt.
+function normalisiereZaehlerTyp(zaehler, typ) {
+  const eintrag = zaehler[typ];
+  if (typeof eintrag === 'number') {
+    zaehler[typ] = { unbekannt: { count: eintrag, zeit: '' } };
+  } else if (eintrag && typeof eintrag.count === 'number') {
+    zaehler[typ] = { unbekannt: { count: eintrag.count, zeit: eintrag.zeit || '' } };
+  } else if (!eintrag) {
+    zaehler[typ] = {};
+  }
+}
+
 function markiereGeuebt() {
   if (!letzteZiffern || !letztePfeile) return;
   const KEY = 'gitueben_geuebt';
   const typ = aktuellerTyp;
+  const grundton = document.getElementById('grundton').value;
   const zeit = zeitstempel();
   const btn = document.getElementById('btn-geuebt');
 
-  btn.textContent = '… speichert';
-  btn.style.cssText = '';
+  // localStorage ist die alleinige, garantierte Wahrheit: das übersteht
+  // jedes Neuladen der Seite, ganz ohne GitHub/Token. Erst hochzählen,
+  // dann erst (unten) optional & bestenfalls zusätzlich nach GitHub spiegeln.
+  let zaehler = {};
+  try { zaehler = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
+  normalisiereZaehlerTyp(zaehler, typ);
+  const prev = zaehler[typ][grundton] || { count: 0 };
+  zaehler[typ][grundton] = { count: prev.count + 1, zeit };
+  localStorage.setItem(KEY, JSON.stringify(zaehler));
 
-  // Auf dem GitHub-Stand aufbauen statt auf dem lokalen Cache: der Cache wird
-  // sonst nie mit GitHub abgeglichen und ein veralteter lokaler Wert würde den
-  // echten (höheren) Online-Stand beim Speichern überschreiben.
+  btn.textContent = '✓ Gespeichert';
+  btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
+  setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
+
+  // GitHub-Sync läuft nur noch als unsichtbares Bonus-Backup im Hintergrund
+  // (z.B. für ein anderes Gerät). Schlägt er fehl (kein/ungültiger Token,
+  // offline), bleibt der lokale Fortschritt trotzdem unangetastet – und ein
+  // veralteter Remote-Stand darf den lokalen nie zurücksetzen. Nur der eine
+  // Typ+Tonart-Eintrag wird gemergt, damit Einträge von anderen Geräten in
+  // data.geuebt nicht verloren gehen.
   GitHubAPI.load().then(data => {
-    const zaehler = data.geuebt || {};
-    const prev = zaehler[typ] || { count: 0 };
-    zaehler[typ] = { count: prev.count + 1, zeit };
-    data.geuebt = zaehler;
-    localStorage.setItem(KEY, JSON.stringify(zaehler));
+    if (!data.geuebt) data.geuebt = {};
+    const remoteTyp = data.geuebt[typ] || {};
+    const remotePrev = remoteTyp[grundton] || { count: 0 };
+    if (remotePrev.count >= zaehler[typ][grundton].count) return;
+    remoteTyp[grundton] = zaehler[typ][grundton];
+    data.geuebt[typ] = remoteTyp;
     return GitHubAPI.save(data);
-  }).then(result => {
-    // Ehrliches Feedback: nur bei tatsächlichem Erfolg "Gespeichert" zeigen,
-    // sonst würde ein stiller Fehler (z.B. fehlender Token) unbemerkt bleiben.
-    if (result && result.ok) {
-      btn.textContent = '✓ Gespeichert';
-      btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
-    } else {
-      btn.textContent = '✗ Nicht gespeichert';
-      btn.style.cssText = 'background:#c0392b;color:#fff;border-color:#c0392b';
-    }
-    setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
   });
 }
 
@@ -852,29 +871,33 @@ function markiereGeuebtC() {
   if (!letzteZiffern || !letztePfeileC) return;
   const PRO_KEY = 'gitueben_pro_geuebt';
   const typ = aktuellerTyp;
+  const grundton = document.getElementById('grundton').value;
   const zeit = zeitstempel();
   const btn = document.getElementById('btn-geuebt-c');
 
-  btn.textContent = '… speichert';
-  btn.style.cssText = '';
+  // localStorage ist auch hier die alleinige, garantierte Wahrheit.
+  let zaehler = {};
+  try { zaehler = JSON.parse(localStorage.getItem(PRO_KEY) || '{}'); } catch(e) {}
+  normalisiereZaehlerTyp(zaehler, typ);
+  const prev = zaehler[typ][grundton];
+  const prevCount = typeof prev === 'number' ? prev : (prev?.count || 0);
+  zaehler[typ][grundton] = { count: prevCount + 1, zeit };
+  localStorage.setItem(PRO_KEY, JSON.stringify(zaehler));
 
+  btn.textContent = '✓ Gespeichert';
+  btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
+  setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
+
+  // GitHub-Sync bleibt unsichtbares Bonus-Backup, darf den lokalen Stand nie zurücksetzen.
   GitHubAPI.load().then(data => {
-    const zaehler = data.proGeuebt || {};
-    const prev = zaehler[typ];
-    const prevCount = typeof prev === 'number' ? prev : (prev?.count || 0);
-    zaehler[typ] = { count: prevCount + 1, zeit };
-    data.proGeuebt = zaehler;
-    localStorage.setItem(PRO_KEY, JSON.stringify(zaehler));
+    if (!data.proGeuebt) data.proGeuebt = {};
+    const remoteTyp = data.proGeuebt[typ] || {};
+    const remotePrevRaw = remoteTyp[grundton];
+    const remotePrevCount = typeof remotePrevRaw === 'number' ? remotePrevRaw : (remotePrevRaw?.count || 0);
+    if (remotePrevCount >= zaehler[typ][grundton].count) return;
+    remoteTyp[grundton] = zaehler[typ][grundton];
+    data.proGeuebt[typ] = remoteTyp;
     return GitHubAPI.save(data);
-  }).then(result => {
-    if (result && result.ok) {
-      btn.textContent = '✓ Gespeichert';
-      btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
-    } else {
-      btn.textContent = '✗ Nicht gespeichert';
-      btn.style.cssText = 'background:#c0392b;color:#fff;border-color:#c0392b';
-    }
-    setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
   });
 }
 

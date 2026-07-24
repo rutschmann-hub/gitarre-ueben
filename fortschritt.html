@@ -69,6 +69,8 @@ const AKKORD_TYPEN = [
   { key: 'dim7',    label: 'Dim 7'      },
 ];
 
+const GRUNDTOENE = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+
 function migrateAltesDaten() {
   if (localStorage.getItem('gitueben_migrated')) return;
   localStorage.setItem('gitueben_migrated', '1');
@@ -98,66 +100,104 @@ function migrateAltesDaten() {
   } catch(e) {}
 }
 
-function renderVerlauf(geuebt = null, proGeuebt = null) {
-  const panel = document.getElementById('verlauf-panel');
-  const ZIEL  = 1000;
+// Alte Zähler-Form war { [typ]: {count, zeit} } bzw. { [typ]: zahl } – ohne
+// Tonart. Migriert einmalig zu { [typ]: { unbekannt: {count, zeit}, [grundton]: {...} } },
+// damit alte Gesamtzahlen erhalten bleiben, auch ohne bekannte Tonart.
+function migriereZuGrundtonFormat() {
+  if (localStorage.getItem('gitueben_migrated_grundton')) return;
+  localStorage.setItem('gitueben_migrated_grundton', '1');
+  ['gitueben_geuebt', 'gitueben_pro_geuebt'].forEach(key => {
+    let zaehler = {};
+    try { zaehler = JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) { return; }
+    let changed = false;
+    Object.keys(zaehler).forEach(typ => {
+      const eintrag = zaehler[typ];
+      if (typeof eintrag === 'number') {
+        zaehler[typ] = { unbekannt: { count: eintrag, zeit: '' } };
+        changed = true;
+      } else if (eintrag && typeof eintrag.count === 'number') {
+        zaehler[typ] = { unbekannt: { count: eintrag.count, zeit: eintrag.zeit || '' } };
+        changed = true;
+      }
+    });
+    if (changed) localStorage.setItem(key, JSON.stringify(zaehler));
+  });
+}
 
-  if (!geuebt)    try { geuebt    = JSON.parse(localStorage.getItem('gitueben_geuebt')     || '{}'); } catch(e) { geuebt = {}; }
-  if (!proGeuebt) try { proGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) { proGeuebt = {}; }
+function zahlVon(eintrag) {
+  if (!eintrag) return 0;
+  return typeof eintrag === 'number' ? eintrag : (eintrag.count || 0);
+}
 
-  const rows = AKKORD_TYPEN.map(({ key, label }) => {
-    const g     = geuebt[key]   || { count: 0, zeit: '' };
-    const p     = proGeuebt[key];
-    const pro   = typeof p === 'number' ? p : (p?.count || 0);
-    const total = g.count;
-    const pct   = Math.min(Math.round((total / ZIEL) * 100), 100);
-    const farbe  = total >= ZIEL ? 'var(--accent2)' : 'var(--accent)';
-    const txtCol = total >= ZIEL ? 'var(--accent2)' : 'var(--text2)';
+function renderGrid(titel, zaehler) {
+  const hatUnbekannt = AKKORD_TYPEN.some(({ key }) => zahlVon((zaehler[key] || {}).unbekannt) > 0);
+  const tonartZeilen = hatUnbekannt ? [...GRUNDTOENE, 'unbekannt'] : GRUNDTOENE;
 
-    return `<tr>
-      <td style="font-size:1.1rem;font-weight:600;color:var(--text);white-space:nowrap;">${label}</td>
-      <td style="font-size:0.95rem;color:var(--text3);white-space:nowrap;">${g.zeit || '–'}</td>
-      <td style="min-width:280px;">
-        <div style="font-size:1.05rem;font-weight:600;color:${txtCol};margin-bottom:8px;">${total} / ${ZIEL}</div>
-        <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:${farbe};border-radius:4px;transition:width 0.4s ease;"></div>
-        </div>
-      </td>
-      <td style="font-size:1.05rem;font-weight:600;color:var(--accent);text-align:center;">${pro > 0 ? pro : '–'}</td>
-    </tr>`;
+  const kopf = AKKORD_TYPEN.map(({ label }) => `<th style="text-align:center;">${label}</th>`).join('');
+
+  const zeilen = tonartZeilen.map(gt => {
+    const zellen = AKKORD_TYPEN.map(({ key }) => {
+      const n = zahlVon((zaehler[key] || {})[gt]);
+      const stil = n > 0 ? 'font-weight:600;color:var(--text);' : 'color:var(--text3);';
+      return `<td style="text-align:center;${stil}">${n > 0 ? n : '–'}</td>`;
+    }).join('');
+    const label = gt === 'unbekannt'
+      ? '<span style="font-style:italic;color:var(--text3);" title="Übungen von vor der Tonart-Erfassung">unbekannt</span>'
+      : gt;
+    return `<tr><td style="font-weight:600;white-space:nowrap;">${label}</td>${zellen}</tr>`;
   }).join('');
 
-  panel.innerHTML = `
+  const summen = AKKORD_TYPEN.map(({ key }) => {
+    const summe = tonartZeilen.reduce((s, gt) => s + zahlVon((zaehler[key] || {})[gt]), 0);
+    return `<td style="text-align:center;font-weight:700;color:var(--accent);">${summe}</td>`;
+  }).join('');
+
+  return `
+    <h3 style="margin:2rem 0 0.75rem;">${titel}</h3>
     <div class="verlauf-wrap">
       <table class="verlauf-table">
-        <thead><tr>
-          <th>Akkordtyp</th>
-          <th>Letzte Übung</th>
-          <th>Geübt</th>
-          <th>Geübt Pro</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
+        <thead><tr><th>Tonart</th>${kopf}</tr></thead>
+        <tbody>
+          ${zeilen}
+          <tr><td style="font-weight:700;">Gesamt</td>${summen}</tr>
+        </tbody>
       </table>
     </div>`;
 }
 
-// Zählt den höheren Stand von zwei Ständen pro Key (lokal vs. GitHub).
+function renderVerlauf(geuebt = null, proGeuebt = null) {
+  const panel = document.getElementById('verlauf-panel');
+
+  if (!geuebt)    try { geuebt    = JSON.parse(localStorage.getItem('gitueben_geuebt')     || '{}'); } catch(e) { geuebt = {}; }
+  if (!proGeuebt) try { proGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) { proGeuebt = {}; }
+
+  panel.innerHTML = renderGrid('Geübt', geuebt) + renderGrid('Geübt Pro', proGeuebt);
+}
+
+// Zählt pro Typ+Tonart den höheren Stand von zwei Ständen (lokal vs. GitHub).
 // Nötig weil der Geübt-Sync im Bandit asynchron läuft und beim Seitenwechsel
 // abgebrochen werden kann – ein noch nicht hochgeladener lokaler Klick darf
 // dann nicht durch die ältere GitHub-Version überschrieben werden.
 function mergeZaehler(local, remote) {
-  const out = { ...remote };
-  Object.keys(local).forEach(key => {
-    const l = local[key], r = remote[key];
-    const lc = typeof l === 'number' ? l : (l?.count || 0);
-    const rc = typeof r === 'number' ? r : (r?.count || 0);
-    out[key] = lc >= rc ? l : r;
+  const out = {};
+  const typen = new Set([...Object.keys(local), ...Object.keys(remote)]);
+  typen.forEach(typ => {
+    const l = local[typ] || {};
+    const r = remote[typ] || {};
+    const merged = { ...r };
+    Object.keys(l).forEach(gt => {
+      const lc = zahlVon(l[gt]);
+      const rc = zahlVon(r[gt]);
+      merged[gt] = lc >= rc ? l[gt] : r[gt];
+    });
+    out[typ] = merged;
   });
   return out;
 }
 
 window.addEventListener('pageshow', () => {
   migrateAltesDaten();
+  migriereZuGrundtonFormat();
   renderVerlauf(); // sofort mit localStorage zeigen
   GitHubAPI.restoreTokenFallback().then(() => GitHubAPI.load()).then(data => {
     let localGeuebt = {}, localProGeuebt = {};
