@@ -7,6 +7,23 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="stylesheet" href="assets/style.css">
   <style>
+    .grid-reihe {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .grid-spalte {
+      flex: 1 1 300px;
+      min-width: 260px;
+    }
+
+    .grid-titel {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+    }
+
     .verlauf-wrap {
       overflow-x: auto;
       border: 1px solid var(--border);
@@ -17,14 +34,15 @@
     .verlauf-table {
       width: 100%;
       border-collapse: collapse;
+      font-size: 0.82rem;
     }
 
     .verlauf-table thead th {
-      padding: 0.85rem 1.5rem;
+      padding: 0.35rem 0.5rem;
       text-align: left;
-      font-size: 0.8rem;
+      font-size: 0.68rem;
       text-transform: uppercase;
-      letter-spacing: 0.09em;
+      letter-spacing: 0.07em;
       color: var(--text3);
       border-bottom: 1px solid var(--border2);
       background: var(--surface2);
@@ -34,10 +52,11 @@
     }
 
     .verlauf-table tbody td {
-      padding: 1.25rem 1.5rem;
+      padding: 0.3rem 0.5rem;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
       font-family: 'DM Mono', monospace;
+      line-height: 1.2;
     }
 
     .verlauf-table tbody tr:last-child td { border-bottom: none; }
@@ -54,7 +73,7 @@
 </header>
 
 <main class="main">
-  <div class="container" style="max-width:900px">
+  <div class="container" style="max-width:1200px">
     <div id="verlauf-panel"></div>
   </div>
 </main>
@@ -153,15 +172,17 @@ function renderGrid(titel, zaehler) {
   }).join('');
 
   return `
-    <h3 style="margin:2rem 0 0.75rem;">${titel}</h3>
-    <div class="verlauf-wrap">
-      <table class="verlauf-table">
-        <thead><tr><th>Tonart</th>${kopf}</tr></thead>
-        <tbody>
-          ${zeilen}
-          <tr><td style="font-weight:700;">Gesamt</td>${summen}</tr>
-        </tbody>
-      </table>
+    <div class="grid-spalte">
+      <h3 class="grid-titel">${titel}</h3>
+      <div class="verlauf-wrap">
+        <table class="verlauf-table">
+          <thead><tr><th>Tonart</th>${kopf}</tr></thead>
+          <tbody>
+            ${zeilen}
+            <tr><td style="font-weight:700;">Gesamt</td>${summen}</tr>
+          </tbody>
+        </table>
+      </div>
     </div>`;
 }
 
@@ -171,7 +192,7 @@ function renderVerlauf(geuebt = null, proGeuebt = null) {
   if (!geuebt)    try { geuebt    = JSON.parse(localStorage.getItem('gitueben_geuebt')     || '{}'); } catch(e) { geuebt = {}; }
   if (!proGeuebt) try { proGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) { proGeuebt = {}; }
 
-  panel.innerHTML = renderGrid('Geübt', geuebt) + renderGrid('Geübt Pro', proGeuebt);
+  panel.innerHTML = `<div class="grid-reihe">${renderGrid('Geübt', geuebt)}${renderGrid('Geübt Pro', proGeuebt)}</div>`;
 }
 
 // Wandelt einen evtl. noch flachen Alt-Eintrag ({count, zeit}) in die
