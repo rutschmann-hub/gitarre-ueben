@@ -152,12 +152,27 @@ function renderGrid(titel, zaehler) {
   const hatUnbekannt = AKKORD_TYPEN.some(({ key }) => zahlVon((zaehler[key] || {}).unbekannt) > 0);
   const tonartZeilen = hatUnbekannt ? [...GRUNDTOENE, 'unbekannt'] : GRUNDTOENE;
 
+  // Höchster Wert im Raster – Zellen werden relativ dazu als Heatmap eingefärbt.
+  let maxWert = 0;
+  tonartZeilen.forEach(gt => {
+    AKKORD_TYPEN.forEach(({ key }) => {
+      maxWert = Math.max(maxWert, zahlVon((zaehler[key] || {})[gt]));
+    });
+  });
+
   const kopf = AKKORD_TYPEN.map(({ label }) => `<th style="text-align:center;">${label}</th>`).join('');
 
   const zeilen = tonartZeilen.map(gt => {
     const zellen = AKKORD_TYPEN.map(({ key }) => {
       const n = zahlVon((zaehler[key] || {})[gt]);
-      const stil = n > 0 ? 'font-weight:600;color:var(--text);' : 'color:var(--text3);';
+      let stil;
+      if (n > 0) {
+        const intensitaet = maxWert > 0 ? n / maxWert : 0;
+        const deckkraft   = Math.round(14 + intensitaet * 55); // 14–69 %
+        stil = `font-weight:600;color:var(--text);background:color-mix(in srgb, var(--accent) ${deckkraft}%, var(--surface));`;
+      } else {
+        stil = 'color:var(--text3);';
+      }
       return `<td style="text-align:center;${stil}">${n > 0 ? n : '–'}</td>`;
     }).join('');
     const label = gt === 'unbekannt'
