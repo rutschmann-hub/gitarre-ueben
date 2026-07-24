@@ -440,7 +440,7 @@
   </div>
 </div>
 
-<script src="assets/github-api.js"></script>
+<script src="assets/sheet-api.js"></script>
 <script>
 const akkordTypen = {
   dom7:    { label:'7',    toene:{'C':'C E G Bb','Db':'Db F Ab Cb','D':'D F# A C','Eb':'Eb G Bb Db','E':'E G# B D','F':'F A C Eb','Gb':'Gb Bb Db Fb','G':'G B D F','Ab':'Ab C Eb Gb','A':'A C# E G','Bb':'Bb D F Ab','B':'B D# F# A'}, funkt:{'1':'Grundton','3':'Terz','5':'Quinte','7':'b7'} },
@@ -735,8 +735,8 @@ function markiereGeuebt() {
   const btn = document.getElementById('btn-geuebt');
 
   // localStorage ist die alleinige, garantierte Wahrheit: das übersteht
-  // jedes Neuladen der Seite, ganz ohne GitHub/Token. Erst hochzählen,
-  // dann erst (unten) optional & bestenfalls zusätzlich nach GitHub spiegeln.
+  // jedes Neuladen der Seite, ganz ohne Google Sheet/Netzwerk. Erst
+  // hochzählen, dann erst (unten) zusätzlich ins Sheet spiegeln.
   let zaehler = {};
   try { zaehler = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
   normalisiereZaehlerTyp(zaehler, typ);
@@ -748,20 +748,14 @@ function markiereGeuebt() {
   btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
   setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
 
-  // GitHub-Sync läuft nur noch als unsichtbares Bonus-Backup im Hintergrund
-  // (z.B. für ein anderes Gerät). Schlägt er fehl (kein/ungültiger Token,
-  // offline), bleibt der lokale Fortschritt trotzdem unangetastet – und ein
-  // veralteter Remote-Stand darf den lokalen nie zurücksetzen. Nur der eine
-  // Typ+Tonart-Eintrag wird gemergt, damit Einträge von anderen Geräten in
-  // data.geuebt nicht verloren gehen.
-  GitHubAPI.load().then(data => {
-    if (!data.geuebt) data.geuebt = {};
-    const remoteTyp = data.geuebt[typ] || {};
-    const remotePrev = remoteTyp[grundton] || { count: 0 };
+  // Google-Sheet-Sync läuft als unsichtbares Bonus-Backup im Hintergrund
+  // (z.B. für ein anderes Gerät). Schlägt er fehl (offline), bleibt der
+  // lokale Fortschritt trotzdem unangetastet – und ein veralterter
+  // Remote-Stand darf den lokalen nie zurücksetzen.
+  SheetAPI.load().then(data => {
+    const remotePrev = (data.geuebt?.[typ]?.[grundton]) || { count: 0 };
     if (remotePrev.count >= zaehler[typ][grundton].count) return;
-    remoteTyp[grundton] = zaehler[typ][grundton];
-    data.geuebt[typ] = remoteTyp;
-    return GitHubAPI.save(data);
+    return SheetAPI.speichereEintrag('geuebt', typ, grundton, zaehler[typ][grundton].count, zeit);
   });
 }
 
@@ -888,16 +882,12 @@ function markiereGeuebtC() {
   btn.style.cssText = 'background:var(--accent2);color:#fff;border-color:var(--accent2)';
   setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
 
-  // GitHub-Sync bleibt unsichtbares Bonus-Backup, darf den lokalen Stand nie zurücksetzen.
-  GitHubAPI.load().then(data => {
-    if (!data.proGeuebt) data.proGeuebt = {};
-    const remoteTyp = data.proGeuebt[typ] || {};
-    const remotePrevRaw = remoteTyp[grundton];
+  // Google-Sheet-Sync bleibt unsichtbares Bonus-Backup, darf den lokalen Stand nie zurücksetzen.
+  SheetAPI.load().then(data => {
+    const remotePrevRaw = data.proGeuebt?.[typ]?.[grundton];
     const remotePrevCount = typeof remotePrevRaw === 'number' ? remotePrevRaw : (remotePrevRaw?.count || 0);
     if (remotePrevCount >= zaehler[typ][grundton].count) return;
-    remoteTyp[grundton] = zaehler[typ][grundton];
-    data.proGeuebt[typ] = remoteTyp;
-    return GitHubAPI.save(data);
+    return SheetAPI.speichereEintrag('proGeuebt', typ, grundton, zaehler[typ][grundton].count, zeit);
   });
 }
 
@@ -955,7 +945,6 @@ window.addEventListener('message', (e) => {
 window.addEventListener('pageshow', (e) => {
   if (!e.persisted) ladeState();
   syncGriffbrett();
-  GitHubAPI.restoreTokenFallback();
 });
 </script>
 </body>

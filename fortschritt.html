@@ -59,7 +59,7 @@
   </div>
 </main>
 
-<script src="assets/github-api.js"></script>
+<script src="assets/sheet-api.js"></script>
 <script>
 const AKKORD_TYPEN = [
   { key: 'dom7',    label: 'Dom 7'      },
@@ -174,10 +174,10 @@ function renderVerlauf(geuebt = null, proGeuebt = null) {
   panel.innerHTML = renderGrid('Geübt', geuebt) + renderGrid('Geübt Pro', proGeuebt);
 }
 
-// Zählt pro Typ+Tonart den höheren Stand von zwei Ständen (lokal vs. GitHub).
+// Zählt pro Typ+Tonart den höheren Stand von zwei Ständen (lokal vs. Sheet).
 // Nötig weil der Geübt-Sync im Bandit asynchron läuft und beim Seitenwechsel
 // abgebrochen werden kann – ein noch nicht hochgeladener lokaler Klick darf
-// dann nicht durch die ältere GitHub-Version überschrieben werden.
+// dann nicht durch den älteren Sheet-Stand überschrieben werden.
 function mergeZaehler(local, remote) {
   const out = {};
   const typen = new Set([...Object.keys(local), ...Object.keys(remote)]);
@@ -195,11 +195,26 @@ function mergeZaehler(local, remote) {
   return out;
 }
 
+// Trägt jeden Eintrag, der lokal höher steht als im Sheet, dort einzeln nach.
+function aktualisiereAbweichende(zaehlerName, merged, remote) {
+  Object.keys(merged).forEach(typ => {
+    Object.keys(merged[typ]).forEach(gt => {
+      const mergedEintrag = merged[typ][gt];
+      const mergedCount   = zahlVon(mergedEintrag);
+      const remoteCount   = zahlVon((remote[typ] || {})[gt]);
+      if (mergedCount > remoteCount) {
+        const zeit = (typeof mergedEintrag === 'object' && mergedEintrag.zeit) || '';
+        SheetAPI.speichereEintrag(zaehlerName, typ, gt, mergedCount, zeit);
+      }
+    });
+  });
+}
+
 window.addEventListener('pageshow', () => {
   migrateAltesDaten();
   migriereZuGrundtonFormat();
   renderVerlauf(); // sofort mit localStorage zeigen
-  GitHubAPI.restoreTokenFallback().then(() => GitHubAPI.load()).then(data => {
+  SheetAPI.load().then(data => {
     let localGeuebt = {}, localProGeuebt = {};
     try { localGeuebt    = JSON.parse(localStorage.getItem('gitueben_geuebt')     || '{}'); } catch(e) {}
     try { localProGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}
@@ -211,14 +226,8 @@ window.addEventListener('pageshow', () => {
     localStorage.setItem('gitueben_pro_geuebt', JSON.stringify(proGeuebt));
     renderVerlauf(geuebt, proGeuebt);
 
-    // Falls lokale Stände höher waren als auf GitHub: korrigierten Stand hochladen
-    const abweichung = JSON.stringify(geuebt) !== JSON.stringify(data.geuebt || {})
-                     || JSON.stringify(proGeuebt) !== JSON.stringify(data.proGeuebt || {});
-    if (abweichung) {
-      data.geuebt = geuebt;
-      data.proGeuebt = proGeuebt;
-      GitHubAPI.save(data);
-    }
+    aktualisiereAbweichende('geuebt', geuebt, data.geuebt || {});
+    aktualisiereAbweichende('proGeuebt', proGeuebt, data.proGeuebt || {});
   });
 });
 </script>
