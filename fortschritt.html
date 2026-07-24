@@ -34,11 +34,11 @@
     .verlauf-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.82rem;
+      font-size: 0.85rem;
     }
 
     .verlauf-table thead th {
-      padding: 0.35rem 0.5rem;
+      padding: 0.5rem 0.6rem;
       text-align: left;
       font-size: 0.68rem;
       text-transform: uppercase;
@@ -52,14 +52,28 @@
     }
 
     .verlauf-table tbody td {
-      padding: 0.3rem 0.5rem;
+      padding: 0.55rem 0.6rem;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
       font-family: 'DM Mono', monospace;
-      line-height: 1.2;
+      line-height: 1.3;
     }
 
     .verlauf-table tbody tr:last-child td { border-bottom: none; }
+
+    .zbar-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .zbar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+    }
   </style>
 </head>
 <body>
@@ -89,6 +103,10 @@ const AKKORD_TYPEN = [
 ];
 
 const GRUNDTOENE = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+
+// Enharmonische Kreuz-Schreibweise für die B-Tonarten in der Anzeige (Daten
+// bleiben unter dem Db/Eb/... Key gespeichert, nur das Label zeigt beides).
+const ENHARMONISCH = { Db: 'Db/C#', Eb: 'Eb/D#', Gb: 'Gb/F#', Ab: 'Ab/G#', Bb: 'Bb/A#' };
 
 function migrateAltesDaten() {
   if (localStorage.getItem('gitueben_migrated')) return;
@@ -152,32 +170,23 @@ function renderGrid(titel, zaehler) {
   const hatUnbekannt = AKKORD_TYPEN.some(({ key }) => zahlVon((zaehler[key] || {}).unbekannt) > 0);
   const tonartZeilen = hatUnbekannt ? [...GRUNDTOENE, 'unbekannt'] : GRUNDTOENE;
 
-  // Höchster Wert im Raster – Zellen werden relativ dazu als Heatmap eingefärbt.
-  let maxWert = 0;
-  tonartZeilen.forEach(gt => {
-    AKKORD_TYPEN.forEach(({ key }) => {
-      maxWert = Math.max(maxWert, zahlVon((zaehler[key] || {})[gt]));
-    });
-  });
-
   const kopf = AKKORD_TYPEN.map(({ label }) => `<th style="text-align:center;">${label}</th>`).join('');
 
   const zeilen = tonartZeilen.map(gt => {
     const zellen = AKKORD_TYPEN.map(({ key }) => {
       const n = zahlVon((zaehler[key] || {})[gt]);
-      let stil;
-      if (n > 0) {
-        const intensitaet = maxWert > 0 ? n / maxWert : 0;
-        const deckkraft   = Math.round(14 + intensitaet * 55); // 14–69 %
-        stil = `font-weight:600;color:var(--text);background:color-mix(in srgb, var(--accent) ${deckkraft}%, var(--surface));`;
-      } else {
-        stil = 'color:var(--text3);';
-      }
-      return `<td style="text-align:center;${stil}">${n > 0 ? n : '–'}</td>`;
+      // Balken läuft 0–100 und fängt danach wieder von vorne an (Runde 2 bei
+      // 101 usw.) – die echte Gesamtzahl daneben zählt aber ungebremst weiter.
+      const rundenstand = n === 0 ? 0 : (n % 100 === 0 ? 100 : n % 100);
+      const zahlFarbe = n > 0 ? 'var(--text)' : 'var(--text3)';
+      return `<td style="text-align:center;">
+        <div style="font-weight:600;color:${zahlFarbe};">${n > 0 ? n : '–'}</div>
+        <div class="zbar-track"><div class="zbar-fill" style="width:${rundenstand}%"></div></div>
+      </td>`;
     }).join('');
     const label = gt === 'unbekannt'
       ? '<span style="font-style:italic;color:var(--text3);" title="Übungen von vor der Tonart-Erfassung">unbekannt</span>'
-      : gt;
+      : (ENHARMONISCH[gt] || gt);
     return `<tr><td style="font-weight:600;white-space:nowrap;">${label}</td>${zellen}</tr>`;
   }).join('');
 
