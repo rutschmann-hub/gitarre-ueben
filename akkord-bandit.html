@@ -752,11 +752,7 @@ function markiereGeuebt() {
   // (z.B. für ein anderes Gerät). Schlägt er fehl (offline), bleibt der
   // lokale Fortschritt trotzdem unangetastet – und ein veralterter
   // Remote-Stand darf den lokalen nie zurücksetzen.
-  SheetAPI.load().then(data => {
-    const remotePrev = (data.geuebt?.[typ]?.[grundton]) || { count: 0 };
-    if (remotePrev.count >= zaehler[typ][grundton].count) return;
-    return SheetAPI.speichereEintrag('geuebt', typ, grundton, zaehler[typ][grundton].count, zeit);
-  });
+  SheetAPI.zaehleHoch('geuebt', typ, grundton, zeit);
 }
 
 // ── Griffbrett Sync ──────────────────────────────────────
@@ -766,7 +762,7 @@ function syncGriffbrett() {
   iframe.contentWindow.postMessage({
     chord:    aktuellerTyp,
     grundton: document.getElementById('grundton').value,
-  }, '*');
+  }, location.origin);
 }
 
 // ── Pfeile pro (Block C): Zufallsziehung, Räder, Notation, Silben, Geübt ──
@@ -883,12 +879,7 @@ function markiereGeuebtC() {
   setTimeout(() => { btn.textContent = '✓ Geübt'; btn.style.cssText = ''; }, 1800);
 
   // Google-Sheet-Sync bleibt unsichtbares Bonus-Backup, darf den lokalen Stand nie zurücksetzen.
-  SheetAPI.load().then(data => {
-    const remotePrevRaw = data.proGeuebt?.[typ]?.[grundton];
-    const remotePrevCount = typeof remotePrevRaw === 'number' ? remotePrevRaw : (remotePrevRaw?.count || 0);
-    if (remotePrevCount >= zaehler[typ][grundton].count) return;
-    return SheetAPI.speichereEintrag('proGeuebt', typ, grundton, zaehler[typ][grundton].count, zeit);
-  });
+  SheetAPI.zaehleHoch('proGeuebt', typ, grundton, zeit);
 }
 
 // ── Betonungen (alle 16 Akzent-Muster über 4 Positionen) ──
@@ -932,6 +923,7 @@ buildBetonung();
 document.getElementById('griffbrett-iframe').addEventListener('load', syncGriffbrett);
 
 window.addEventListener('message', (e) => {
+  if (e.source !== document.getElementById('griffbrett-iframe').contentWindow) return;
   if (e.data && e.data.grundtonUpdate) {
     document.getElementById('grundton').value = e.data.grundtonUpdate;
     if (typeof letzteZiffern !== 'undefined' && letzteZiffern) zeigeAkkord(letzteZiffern);

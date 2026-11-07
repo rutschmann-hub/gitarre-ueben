@@ -271,6 +271,7 @@ window.addEventListener('pageshow', () => {
   migriereZuGrundtonFormat();
   renderVerlauf(); // sofort mit localStorage zeigen
   SheetAPI.load().then(data => {
+    if (!data) return;
     let localGeuebt = {}, localProGeuebt = {};
     try { localGeuebt    = JSON.parse(localStorage.getItem('gitueben_geuebt')     || '{}'); } catch(e) {}
     try { localProGeuebt = JSON.parse(localStorage.getItem('gitueben_pro_geuebt') || '{}'); } catch(e) {}

@@ -24,12 +24,6 @@
       <p class="page-hero-subtitle">Abhak-Listen für strukturiertes Üben</p>
     </div>
 
-    <div id="tokenNotice" class="notice" style="display:none">
-      <span>⚠</span>
-      <span>Kein GitHub Token – Häkchen werden nur lokal gespeichert.
-        <a href="#" id="tokenNoticeBtn">Token eingeben →</a>
-      </span>
-    </div>
 
     <div id="seqList"></div>
 
@@ -60,31 +54,17 @@
   </div>
 </dialog>
 
-<!-- Token Dialog -->
-<dialog id="tokenDialog">
-  <h2 class="dialog-title">GitHub Token</h2>
-  <p class="dialog-desc">
-    Dein Personal Access Token (classic) wird gebraucht, damit Fortschritte
-    automatisch in <code>rutschmann-hub/gitarre-ueben</code> gespeichert werden.<br><br>
-    GitHub → Settings → Developer settings →
-    Personal access tokens → Tokens (classic) → Generate new token<br>
-    Benötigter Scope: <code>repo</code>
-  </p>
-  <div class="field">
-    <label class="field-label" for="tokenInput">Personal Access Token</label>
-    <input class="field-input" type="password" id="tokenInput" placeholder="ghp_…" autocomplete="off">
-  </div>
-  <div class="dialog-actions">
-    <button class="btn btn-ghost" id="tokenCancel">Abbrechen</button>
-    <button class="btn btn-primary" id="tokenSave">Speichern</button>
-  </div>
-</dialog>
 
-<script src="../assets/github-api.js"></script>
+<script src="../assets/sheet-api.js"></script>
 <script>
-  let progress   = null;
+  const LOKAL_KEY = 'gitueben_sequenzen';
+  const DIRTY_KEY = 'gitueben_sequenzen_dirty';
+
+  let progress   = { sequenzen: {} };
   let saveTimer  = null;
   let dialogCb   = null;
+  let speichertGerade = false;
+  let aenderungWaehrendSpeichern = false;
 
   // ── Sync status ───────────────────────────────────────────────────────
   function setSyncStatus(state, text) {
@@ -93,21 +73,54 @@
     el.textContent = text;
   }
 
-  // ── Debounced save ────────────────────────────────────────────────────
-  function scheduleSave() {
-    setSyncStatus('saving', '⟳ Speichert…');
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
-      const r = await GitHubAPI.save(progress);
-      if (r.ok)                      setSyncStatus('synced',  '✓ Gespeichert');
-      else if (r.reason === 'no_token') { setSyncStatus('dirty', '○ Kein Token'); showTokenNotice(); }
-      else if (r.reason === 'offline')  setSyncStatus('offline', '◌ Offline');
-      else                             setSyncStatus('dirty',  '✗ Fehler');
-    }, 700);
+  // localStorage ist die garantierte Wahrheit, das Sheet wird nachgezogen.
+  function speichereLokal() {
+    localStorage.setItem(LOKAL_KEY, JSON.stringify(progress.sequenzen));
+    localStorage.setItem(DIRTY_KEY, '1');
   }
 
-  function showTokenNotice() {
-    document.getElementById('tokenNotice').style.display = 'flex';
+  function ladeLokal() {
+    try {
+      const raw = localStorage.getItem(LOKAL_KEY);
+      if (raw) return JSON.parse(raw);
+      // Einmalige Übernahme aus dem früheren GitHub-Cache
+      const alt = JSON.parse(localStorage.getItem('gitueben_progress') || 'null');
+      if (alt?.sequenzen && Object.keys(alt.sequenzen).length) {
+        localStorage.setItem(LOKAL_KEY, JSON.stringify(alt.sequenzen));
+        localStorage.setItem(DIRTY_KEY, '1');
+        return alt.sequenzen;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  // Immer nur ein Upload gleichzeitig; Änderungen währenddessen lösen
+  // direkt danach einen weiteren aus, statt verloren zu gehen.
+  async function hochladen() {
+    if (speichertGerade) { aenderungWaehrendSpeichern = true; return; }
+    if (!localStorage.getItem(DIRTY_KEY)) return;
+    if (!navigator.onLine) { setSyncStatus('offline', '◌ Offline – lokal gespeichert'); return; }
+
+    speichertGerade = true;
+    aenderungWaehrendSpeichern = false;
+    setSyncStatus('saving', '⟳ Speichert…');
+    const r = await SheetAPI.speichereDaten('sequenzen', progress.sequenzen);
+    speichertGerade = false;
+
+    if (aenderungWaehrendSpeichern) return hochladen();
+    if (r.ok) {
+      localStorage.removeItem(DIRTY_KEY);
+      setSyncStatus('synced', '✓ Gespeichert');
+    } else {
+      setSyncStatus('dirty', '✗ Nicht synchronisiert – lokal gespeichert');
+    }
+  }
+
+  function scheduleSave() {
+    speichereLokal();
+    setSyncStatus('saving', '⟳ Speichert…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(hochladen, 700);
   }
 
   // ── HTML escape ───────────────────────────────────────────────────────
@@ -324,57 +337,31 @@
       document.getElementById('addDialog').close();
   });
 
-  // ── Token dialog ──────────────────────────────────────────────────────
-  document.getElementById('tokenNoticeBtn').addEventListener('click', e => {
-    e.preventDefault();
-    document.getElementById('tokenDialog').showModal();
-  });
-
-  document.getElementById('tokenSave').addEventListener('click', () => {
-    const val = document.getElementById('tokenInput').value.trim();
-    if (!val) return;
-    GitHubAPI.setToken(val);
-    document.getElementById('tokenDialog').close();
-    document.getElementById('tokenNotice').style.display = 'none';
-    setSyncStatus('saving', '⟳ Speichert…');
-    GitHubAPI.save(progress).then(r => {
-      if (r.ok) setSyncStatus('synced', '✓ Gespeichert');
-      else      setSyncStatus('dirty',  '✗ Fehler: ' + r.reason);
-    });
-  });
-
-  document.getElementById('tokenCancel').addEventListener('click', () => {
-    document.getElementById('tokenDialog').close();
-  });
-
-  document.getElementById('tokenDialog').addEventListener('click', e => {
-    if (e.target === document.getElementById('tokenDialog'))
-      document.getElementById('tokenDialog').close();
-  });
-
   // ── Online / offline ──────────────────────────────────────────────────
-  window.addEventListener('online', async () => {
-    setSyncStatus('saving', '⟳ Synchronisiert…');
-    const r = await GitHubAPI.syncPending();
-    if (r?.ok) setSyncStatus('synced', '✓ Gespeichert');
-  });
-
+  window.addEventListener('online', hochladen);
   window.addEventListener('offline', () => setSyncStatus('offline', '◌ Offline'));
 
   // ── Init ──────────────────────────────────────────────────────────────
   async function init() {
+    const lokal = ladeLokal();
+    if (lokal) { progress.sequenzen = lokal; renderAll(); }
     setSyncStatus('saving', '⟳ Lädt…');
-    await GitHubAPI.restoreTokenFallback();
-    await GitHubAPI.syncPending();
-    progress = await GitHubAPI.load();
-    renderAll();
 
-    if (!GitHubAPI.getToken()) {
-      showTokenNotice();
-      setSyncStatus('dirty', '○ Kein Token');
-    } else {
-      setSyncStatus('synced', '✓ Synchronisiert');
+    const remote = await SheetAPI.load();
+    if (!remote) {
+      if (!lokal) renderAll();
+      setSyncStatus('offline', '◌ Sheet nicht erreichbar – lokal');
+      return;
     }
+    // Nicht hochgeladene lokale Änderungen gewinnen gegen den Sheet-Stand
+    if (localStorage.getItem(DIRTY_KEY)) {
+      renderAll();
+      return hochladen();
+    }
+    progress.sequenzen = remote.sequenzen || {};
+    localStorage.setItem(LOKAL_KEY, JSON.stringify(progress.sequenzen));
+    renderAll();
+    setSyncStatus('synced', '✓ Synchronisiert');
   }
 
   init();

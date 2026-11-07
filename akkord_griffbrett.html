@@ -940,13 +940,13 @@ function navGrundton(dir) {
   const i = GRUNDTON_ORDER.indexOf(curGrundton);
   curGrundton = GRUNDTON_ORDER[(i + dir + GRUNDTON_ORDER.length) % GRUNDTON_ORDER.length];
   document.getElementById('grundton-sel').value = curGrundton;
-  if (window.parent !== window) window.parent.postMessage({grundtonUpdate: curGrundton}, '*');
+  if (window.parent !== window) window.parent.postMessage({grundtonUpdate: curGrundton}, location.origin);
   buildLegend(); buildShpSel(); render();
 }
 function setGrundtonSel(val) {
   exitFreeMode();
   curGrundton = val;
-  if (window.parent !== window) window.parent.postMessage({grundtonUpdate: curGrundton}, '*');
+  if (window.parent !== window) window.parent.postMessage({grundtonUpdate: curGrundton}, location.origin);
   buildLegend(); buildShpSel(); render();
 }
 function navChord(dir) {
@@ -1100,9 +1100,10 @@ function applyStateToUI() {
 }
 
 // ── Sync vom Elternfenster (akkord-bandit.html) ───────────────
-// Elternseite schickt { chord: 'dom7'|'maj7'|'moll7'|'moll7b5', grundton: 'C'…'B' }
+// Elternseite schickt { chord: 'dom7'|'maj7'|'moll7'|'moll7b5'|'dim7', grundton: 'C'…'B' }
 const CHORD_MAP = { dom7:'dom7', maj7:'maj7', moll7:'min7', moll7b5:'min7b5', dim7:'dim7' };
 window.addEventListener('message', (e) => {
+  if (e.source !== window.parent || e.origin !== location.origin) return;
   const data = e.data || {};
   let changed = false;
   if (data.chord && CHORD_MAP[data.chord] && CHORD_MAP[data.chord] !== curChord) {
@@ -1170,7 +1171,7 @@ document.getElementById('akkord-fb').addEventListener('click', function(e) {
 function postHeight() {
   if (window.parent === window) return;
   const h = Math.ceil(document.body.scrollHeight) + 2;
-  window.parent.postMessage({ griffbrettHeight: h }, '*');
+  window.parent.postMessage({ griffbrettHeight: h }, location.origin);
 }
 if (window.parent !== window) {
   if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
